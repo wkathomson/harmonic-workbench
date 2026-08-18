@@ -289,3 +289,22 @@ made the brief's assumption wrong. The brief is the plan; this is what was actua
 - **The route is `#/synth`, not `/synth`.** The app has no router and GitHub Pages serves
   it from a sub-path, so a hash route works identically in dev and on Pages without adding
   a routing dependency or any `base`-path handling.
+
+- **The monolithic `createSynth` is gone.** Phase 1 extracted it verbatim as
+  `src/audio/synth/synth.js`; Phase 2 replaced it with `createPart` + `createMixer` and it
+  was deleted rather than left as a second engine to drift out of step. It is in git
+  history if it is ever needed (`git show 2f979ac:src/audio/synth/synth.js`), and
+  `reference/web-synth-v11.html` remains the ground truth either way.
+
+- **Patch state is split in two.** `MIXER_PARAMS` in `constants.js` is the routing table:
+  effect *settings* (delay time, reverb size, chorus rate, master level, tempo) belong to
+  the mix and are shared by every part; everything else — including the three send
+  *amounts* and the bitcrush insert — belongs to the patch and travels with it. This is
+  what lets bass, chords and melody each carry their own sound while sharing one reverb.
+  A patch designed with a big reverb send will sound drier on a project whose reverb is
+  set small; that is the intended behaviour, not a bug.
+
+- **The panel UI lives in `src/components/synth/`.** `Knob`/`Switch`/`params.js` are the
+  primitives, `panel/` holds the eight modules, `scopes/` the canvas visualisations (all
+  sharing one half-rate raf loop), and `panel.css` is the reference stylesheet scoped
+  under `.instrument`.

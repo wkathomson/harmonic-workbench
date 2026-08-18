@@ -11,13 +11,19 @@ import Filter from "./panel/Filter.jsx";
 import Contour from "./panel/Contour.jsx";
 import Voicing from "./panel/Voicing.jsx";
 import Effects from "./panel/Effects.jsx";
+import Scope from "./scopes/Scope.jsx";
+import FilterResponse from "./scopes/FilterResponse.jsx";
+import { useModuleFold } from "./useModuleFold.js";
 
 export default function SynthPanel({
   values, write, slots, onSlotChange,
-  getResponse, getVoiceStates, running,
+  getResponse, getVoiceStates, getScope, getSpectrum,
+  onPanic, crusherActive, sampleRate, running,
 }) {
+  const rootRef = useModuleFold(["modLfo1", "modLfo2", "modMatrix"]);
+
   return (
-    <>
+    <div ref={rootRef}>
       <div className="rack rack-upper">
         <Source values={values} write={write} />
       </div>
@@ -32,14 +38,36 @@ export default function SynthPanel({
       </div>
 
       <div className="rack rack-lower">
-        <Filter values={values} write={write} getResponse={getResponse} running={running} />
+        <Filter values={values} write={write} />
         <Contour values={values} write={write} />
-        <Voicing values={values} write={write} getVoiceStates={getVoiceStates} running={running} />
+        <Voicing
+          values={values}
+          write={write}
+          getVoiceStates={getVoiceStates}
+          running={running}
+          onPanic={onPanic}
+        />
       </div>
 
       <div className="rack rack-fx">
-        <Effects values={values} write={write} />
+        <Effects values={values} write={write} crusherActive={crusherActive} />
       </div>
-    </>
+
+      <div className="instruments-row">
+        <FilterResponse
+          getResponse={getResponse}
+          cutoff={values["filter.cutoff"]}
+          resonance={values["filter.resonance"]}
+          type={values["filter.type"]}
+          running={running}
+        />
+        <Scope
+          getScope={getScope}
+          getSpectrum={getSpectrum}
+          running={running}
+          sampleRate={sampleRate}
+        />
+      </div>
+    </div>
   );
 }

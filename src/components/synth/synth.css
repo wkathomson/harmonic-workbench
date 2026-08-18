@@ -13,19 +13,15 @@
 .sy-back { color: var(--txd); text-decoration: none; font-size: .65rem; text-transform: uppercase; letter-spacing: .12em; }
 .sy input[type=range] { width: 100%; accent-color: var(--ac); }
 
-/* ---------- keyboard ---------- */
-.sy-kbwrap { border-top: 1px solid var(--bd); padding-top: 14px; }
-.sy-kbctl { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
-.sy-kboct { font-size: .7rem; color: var(--ac); min-width: 30px; text-align: center; }
-.sy-keys { position: relative; display: flex; height: 130px; user-select: none; touch-action: none; }
-.sy-key { cursor: pointer; }
-.sy-key.wht { flex: 1 0 auto; background: var(--sk); border: 1px solid var(--bd); border-radius: 0 0 3px 3px; }
-.sy-key.blk { width: 0; overflow: visible; position: relative; z-index: 2; }
-.sy-key.blk::before { content: ''; position: absolute; left: -14px; top: 0; width: 28px; height: 62%; background: #1a1815; border: 1px solid #000; border-radius: 0 0 3px 3px; }
-.sy-key.wht[data-on] { background: var(--ac); }
-.sy-key.blk[data-on]::before { background: var(--acd); }
-
-/* ---------- performance strip (mod wheel) ---------- */
-.sy-perf { display: flex; gap: 16px; align-items: center; margin: 14px 0 4px; }
-.sy-wheel { display: flex; gap: 8px; align-items: center; font-size: .6rem; text-transform: uppercase; letter-spacing: .12em; color: var(--txd); }
-.sy-wheel input[type=range] { width: 140px; accent-color: var(--ac); }
+/* The reference injects a <span class="fold">▾</span> into each module head.
+   A pseudo-element does the same job without giving React a stray child to
+   reconcile; panel.css already styles .fold and the collapsed states. */
+.instrument .module-head::after {
+  content: '▾';
+  font-size: .55rem;
+  color: var(--engrave-soft);
+  flex: none;
+  margin-left: auto;
+  transition: transform .12s ease;
+}
+.instrument .module[data-collapsed="true"] .module-head::after { transform: rotate(-90deg); }

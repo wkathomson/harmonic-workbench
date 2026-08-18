@@ -69,12 +69,18 @@ export default function Knob({ path, value, onChange, disabled }) {
     onChange(v);
   }, [onChange]);
 
+  /* The current value is mirrored into a ref so a nudge can read it without
+     calling onChange from inside a setState updater — React runs updaters
+     during render, and updating the parent from there is a warning and a
+     re-entrancy hazard. */
+  const localRef = useRef(value);
+  localRef.current = local;
+
   const nudge = useCallback(delta => {
-    setLocal(prev => {
-      const next = fromNorm(toNorm(prev, d) + delta, d);
-      onChange(next);
-      return next;
-    });
+    const next = fromNorm(toNorm(localRef.current, d) + delta, d);
+    localRef.current = next;
+    setLocal(next);
+    onChange(next);
   }, [d, onChange]);
 
   const handlePointerDown = e => {

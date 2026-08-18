@@ -1,43 +1,39 @@
 import { clamp } from './util.js';
 import {
-  DEFAULTS, DEFAULT_SLOTS, DEST_SCALE, SYNC_DIVS, ARP_DIVS, PAN_POS,
-  POOL_SIZE, KEY_CENTRE, STEAL_FADE, VOICE_HEADROOM, SH_STEPS, SH_STEP_HZ,
-  MORPH_TABLES, MORPH_HARMONICS
+  DEFAULT_SLOTS, DEST_SCALE, SYNC_DIVS, ARP_DIVS, PAN_POS,
+  POOL_SIZE, KEY_CENTRE, STEAL_FADE, VOICE_HEADROOM,
+  PART_DEFAULTS, MIXER_PARAMS
 } from './constants.js';
-import { generateNoise, makeDriveCurve, makePulseCurve, harmonicsAt } from './curves.js';
+import { makeDriveCurve } from './curves.js';
+import { getTables } from './tables.js';
 import { createVoice } from './voice.js';
 import { createLFO } from './lfo.js';
 
 /* --------------------------------------------------------------------------
-   Synth
+   Part — one voice pool, filter, envelopes, mod matrix, LFOs, drive,
+   bitcrush insert and arpeggiator: everything that belongs to a patch's
+   character rather than to the mix. A Workbench session builds one of
+   these per voice (bass, chords, lead) against a single shared
+   `createMixer(ctx)`.
+
+   Node-for-node and value-for-value this is the first half of what used
+   to be createSynth (see synth.js) — split so the sound doesn't change,
+   only where the nodes live.
    -------------------------------------------------------------------------- */
-export function createSynth(ctx, crusherReady) {
-  const state = structuredClone(DEFAULTS);
+export function createPart(ctx, mixer, opts = {}) {
+  const poolSize = opts.poolSize ?? POOL_SIZE;
+  const crusherReady = opts.crusherReady ?? false;
+
+  const state = structuredClone(PART_DEFAULTS);
   const modSlots = structuredClone(DEFAULT_SLOTS);
 
   const voiceBus = ctx.createGain();
   voiceBus.gain.value = VOICE_HEADROOM;
 
-  const limiter = ctx.createDynamicsCompressor();
-  limiter.threshold.value = -2;
-  limiter.knee.value = 8;
-  limiter.ratio.value = 12;
-  limiter.attack.value = 0.004;
-  limiter.release.value = 0.25;
-
-  const masterGain = ctx.createGain();
-  masterGain.gain.value = state.master.level;
-
-  const analyser = ctx.createAnalyser();
-  analyser.fftSize = 2048;
-  analyser.smoothingTimeConstant = 0.7;
-
-  /* ---- effects section ----
+  /* ---- bitcrush insert ----
      voiceBus → [bitcrush insert, dry/wet] → post
-     post → limiterIn                       (dry)
-     post → delaySend → delay ⇄ tone/feedback → limiterIn
-     post → verbSend → convolver → limiterIn
-     limiterIn → limiter → master → analyser → out                       */
+     post splits three ways: to the three shared-mixer sends, and down
+     through part level/pan to the mixer's dry input.                    */
   const fxDry = ctx.createGain();
   const crushIn = ctx.createGain();
   const fxWet = ctx.createGain();
@@ -45,7 +41,6 @@ export function createSynth(ctx, crusherReady) {
   fxWet.gain.value = state.fx.crushMix;
 
   const post = ctx.createGain();
-  const limiterIn = ctx.createGain();
 
   voiceBus.connect(fxDry).connect(post);
   voiceBus.connect(crushIn);
@@ -68,94 +63,29 @@ export function createSynth(ctx, crusherReady) {
   if (!crusherNode) crushIn.connect(ctx.createGain()).connect(fxWet);
   fxWet.connect(post);
 
-  /* delay: the feedback loop runs entirely inside the audio graph.
-     tone filter sits inside the loop, so each repeat gets darker. */
+  /* send amounts: the patch's own gain into each shared bus. the effect
+     itself (delay time, chorus depth, reverb size...) lives on the
+     mixer; only the amount travels with the part. */
   const delaySend = ctx.createGain();
   delaySend.gain.value = state.fx.delaySend;
-  const delayNode = ctx.createDelay(2);
-  delayNode.delayTime.value = state.fx.delayTime;
-  const delayFilter = ctx.createBiquadFilter();
-  delayFilter.type = 'lowpass';
-  delayFilter.frequency.value = state.fx.delayTone;
-  delayFilter.Q.value = 0.4;
-  const delayFb = ctx.createGain();
-  delayFb.gain.value = state.fx.delayFeedback;
-
-  post.connect(delaySend).connect(delayNode).connect(delayFilter);
-  delayFilter.connect(delayFb).connect(delayNode);
-  delayFilter.connect(limiterIn);
-
-  /* reverb: convolution with a synthetic impulse response — stereo
-     exponentially-decaying noise, damped by a one-pole lowpass whose
-     smoothing grows over the tail. */
-  function makeImpulse(seconds, damp) {
-    const len = Math.max(64, Math.floor(ctx.sampleRate * seconds));
-    const buf = ctx.createBuffer(2, len, ctx.sampleRate);
-    for (let ch = 0; ch < 2; ch++) {
-      const d = buf.getChannelData(ch);
-      let lp = 0;
-      for (let i = 0; i < len; i++) {
-        const t = i / len;
-        const env = Math.pow(0.001, t);                    // −60 dB at the tail
-        const k = Math.min(0.98, damp * (0.25 + 0.7 * t)); // more smoothing later
-        const n = Math.random() * 2 - 1;
-        lp += (n - lp) * (1 - k);
-        d[i] = lp * env;
-      }
-    }
-    return buf;
-  }
-
-  /* chorus: two short delays modulated in quadrature by one LFO, panned
-     hard left and right. the ear reads the time-varying detune as width. */
   const choSend = ctx.createGain();
   choSend.gain.value = state.fx.choSend;
-  const choLfo = ctx.createOscillator();
-  choLfo.type = 'sine';
-  choLfo.frequency.value = state.fx.choRate;
-  const choDepthL = ctx.createGain();
-  const choDepthR = ctx.createGain();
-  choDepthL.gain.value = state.fx.choDepth * 0.003;
-  choDepthR.gain.value = -state.fx.choDepth * 0.003;   // inverted = quadrature-ish
-  const choDelayL = ctx.createDelay(0.06);
-  const choDelayR = ctx.createDelay(0.06);
-  choDelayL.delayTime.value = 0.011;
-  choDelayR.delayTime.value = 0.017;
-  const choPanL = ctx.createStereoPanner();
-  const choPanR = ctx.createStereoPanner();
-  choPanL.pan.value = -0.8;
-  choPanR.pan.value = 0.8;
-
-  choLfo.connect(choDepthL).connect(choDelayL.delayTime);
-  choLfo.connect(choDepthR).connect(choDelayR.delayTime);
-  choLfo.start();
-  post.connect(choSend);
-  choSend.connect(choDelayL).connect(choPanL).connect(limiterIn);
-  choSend.connect(choDelayR).connect(choPanR).connect(limiterIn);
-
   const verbSend = ctx.createGain();
   verbSend.gain.value = state.fx.verbSend;
-  const convolver = ctx.createConvolver();
-  convolver.buffer = makeImpulse(state.fx.verbSize, state.fx.verbDamp);
-  post.connect(verbSend).connect(convolver).connect(limiterIn);
 
-  let irTimer = null;
-  function scheduleIR() {
-    clearTimeout(irTimer);
-    irTimer = setTimeout(() => {
-      convolver.buffer = makeImpulse(state.fx.verbSize, state.fx.verbDamp);
-    }, 180);
-  }
+  post.connect(delaySend).connect(mixer.sends.delay);
+  post.connect(choSend).connect(mixer.sends.chorus);
+  post.connect(verbSend).connect(mixer.sends.reverb);
 
-  post.connect(limiterIn);
-  limiterIn.connect(limiter);
-  limiter.connect(masterGain);
-  masterGain.connect(analyser);
-  analyser.connect(ctx.destination);
-
-  /* recorder tap: a MediaStream carrying exactly what reaches the speakers */
-  const recDest = ctx.createMediaStreamDestination();
-  masterGain.connect(recDest);
+  /* part output stage: level then pan, inserted in series after the
+     bitcrush insert so behaviour is unchanged at their defaults
+     (level 1 = transparent gain, pan 0 = identity stereo pan). two
+     separate nodes, never one param carrying both writers. */
+  const partLevel = ctx.createGain();
+  partLevel.gain.value = state.part.level;
+  const partPan = ctx.createStereoPanner();
+  partPan.pan.value = state.part.pan;
+  post.connect(partLevel).connect(partPan).connect(mixer.input);
 
   const mixNorm = () =>
     1 / Math.max(1, state.osc1.level + state.osc2.level + state.noise.level);
@@ -203,59 +133,39 @@ export function createSynth(ctx, crusherReady) {
     return { pitchCt1, pitchCt2, cutoffOct, fenvOff, ampDecayMul, ampSusOff };
   }
 
-  const morphWaves = [];
-  for (let i = 0; i < MORPH_TABLES; i++) {
-    const amps = harmonicsAt(i / (MORPH_TABLES - 1));
-    const real = new Float32Array(MORPH_HARMONICS + 1);
-    const imag = new Float32Array(MORPH_HARMONICS + 1);
-    for (let n = 1; n <= MORPH_HARMONICS; n++) imag[n] = amps[n - 1];
-    morphWaves.push(ctx.createPeriodicWave(real, imag));
-  }
-
-  const noiseLen = Math.floor(ctx.sampleRate * 2);
+  /* wavetable morph bank, noise buffers, S&H buffer and pulse curve are
+     cached per AudioContext (see tables.js) rather than rebuilt per
+     part — several parts now share one context. */
+  const tables = getTables(ctx);
   const shared = {
-    buffers: {},
+    buffers: tables.buffers,
     driveCurve: makeDriveCurve(state.filter.drive),
-    pulseCurve: makePulseCurve(),
-    morphWaves,
+    pulseCurve: tables.pulseCurve,
+    morphWaves: tables.morphWaves,
     bendSemis: 0,
     mixNorm: mixNorm(),
     staticMods
   };
-  for (const type of ['white', 'pink']) {
-    const buf = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
-    buf.copyToChannel(generateNoise(noiseLen, type), 0);
-    shared.buffers[type] = buf;
-  }
 
-  /* S&H buffer: 32 random steps looping */
-  const shLen = Math.floor(ctx.sampleRate * (SH_STEPS / SH_STEP_HZ));
-  const shBuffer = ctx.createBuffer(1, shLen, ctx.sampleRate);
-  {
-    const data = shBuffer.getChannelData(0);
-    const per = Math.floor(shLen / SH_STEPS);
-    for (let s = 0; s < SH_STEPS; s++) {
-      const val = Math.random() * 2 - 1;
-      for (let i = s * per; i < Math.min((s + 1) * per, shLen); i++) data[i] = val;
-    }
-  }
-
-  const voices = Array.from({ length: POOL_SIZE },
+  const voices = Array.from({ length: poolSize },
     () => createVoice(ctx, state, shared, voiceBus));
 
   function applySpread(t) {
-    voices.forEach((v, i) => v.setPan(state.master.spread * PAN_POS[i], t));
+    voices.forEach((v, i) => v.setPan(state.master.spread * PAN_POS[i % PAN_POS.length], t));
   }
   applySpread(0);
 
+  /* `voices.slice(0, n)` clamps itself to the pool's actual length, so a
+     bass part (poolSize 2) is safe even when state.voice.count still
+     carries a chord-sized default. */
   const activePoly = () => voices.slice(0, state.voice.count);
   const monoSet = () => state.perf.mode === 'unison'
-    ? voices.slice(0, clamp(state.perf.uniVoices, 2, POOL_SIZE))
+    ? voices.slice(0, clamp(state.perf.uniVoices, 2, poolSize))
     : voices.slice(0, 1);
 
   /* ---- LFOs and mod sources ---- */
-  const lfo1 = createLFO(ctx, state.lfo1, shBuffer);
-  const lfo2 = createLFO(ctx, state.lfo2, shBuffer);
+  const lfo1 = createLFO(ctx, state.lfo1, tables.shBuffer);
+  const lfo2 = createLFO(ctx, state.lfo2, tables.shBuffer);
 
   const wheelSource = ctx.createConstantSource();
   wheelSource.offset.value = 0;
@@ -374,25 +284,20 @@ export function createSynth(ctx, crusherReady) {
   }
   modSlots.forEach((_, i) => rewireSlot(i));
 
-  /* LFO rate resolution: sync division wins over the rate knob */
+  /* LFO rate resolution: sync division wins over the rate knob. tempo now
+     lives on the mixer, so it's read through there rather than a
+     master.tempo duplicated per part. */
   function lfoHz(which) {
     const cfg = state[which];
     const div = SYNC_DIVS[cfg.sync]?.[1] ?? 0;
-    if (div > 0) return (state.master.tempo / 60) / div;
+    if (div > 0) return (mixer.getTempo() / 60) / div;
     return cfg.rate;
   }
   function updateLfoRates(t) {
     lfo1.setRate(lfoHz('lfo1'), t);
     lfo2.setRate(lfoHz('lfo2'), t);
   }
-
-  function updateDelayTime(t) {
-    const div = SYNC_DIVS[state.fx.delaySync]?.[1] ?? 0;
-    const secs = div > 0
-      ? clamp(div * 60 / state.master.tempo, 0.02, 2)
-      : state.fx.delayTime;
-    delayNode.delayTime.setTargetAtTime(secs, t, 0.05);
-  }
+  mixer.onTempoChange(() => updateLfoRates(ctx.currentTime));
 
   const mirror = ctx.createBiquadFilter();
 
@@ -499,7 +404,7 @@ export function createSynth(ctx, crusherReady) {
   let arpLastNote = null;
 
   const arpInterval = () =>
-    (ARP_DIVS[state.arp.rate]?.[1] ?? 0.5) * (60 / state.master.tempo);
+    (ARP_DIVS[state.arp.rate]?.[1] ?? 0.5) * (60 / mixer.getTempo());
 
   function buildPattern() {
     const base = arpHeld.map(h => h.note);
@@ -623,11 +528,13 @@ export function createSynth(ctx, crusherReady) {
   }
 
   function setParam(module, param, value) {
-    if (!(module in state)) return;
+    const path = `${module}.${param}`;
+    if (MIXER_PARAMS.has(path)) return;               // belongs to the mixer, not this part
+    if (!(module in state) || !(param in state[module])) return;
     state[module][param] = value;
     const t = ctx.currentTime;
 
-    switch (`${module}.${param}`) {
+    switch (path) {
       case 'osc1.waveform':
         voices.forEach(v => v.setWaveform(1, value, t));
         break;
@@ -641,11 +548,6 @@ export function createSynth(ctx, crusherReady) {
       case 'osc1.fm': voices.forEach(v => v.setFm(value, t)); break;
       case 'master.spread': applySpread(t); break;
       case 'fx.choSend': choSend.gain.setTargetAtTime(value, t, 0.02); break;
-      case 'fx.choRate': choLfo.frequency.setTargetAtTime(value, t, 0.02); break;
-      case 'fx.choDepth':
-        choDepthL.gain.setTargetAtTime(value * 0.003, t, 0.02);
-        choDepthR.gain.setTargetAtTime(-value * 0.003, t, 0.02);
-        break;
       case 'arp.rate': case 'arp.mode': case 'arp.octaves':
         buildPattern();
         break;
@@ -684,10 +586,6 @@ export function createSynth(ctx, crusherReady) {
       case 'lfo2.rate': case 'lfo2.sync':
         updateLfoRates(t);
         break;
-      case 'master.tempo':
-        updateLfoRates(t);
-        updateDelayTime(t);
-        break;
       case 'fx.crushBits':
         if (crusherNode) crusherNode.parameters.get('bits').setTargetAtTime(value, t, 0.02);
         break;
@@ -698,13 +596,10 @@ export function createSynth(ctx, crusherReady) {
         fxDry.gain.setTargetAtTime(1 - value, t, 0.02);
         fxWet.gain.setTargetAtTime(value, t, 0.02);
         break;
-      case 'fx.delayTime': case 'fx.delaySync': updateDelayTime(t); break;
-      case 'fx.delayFeedback': delayFb.gain.setTargetAtTime(value, t, 0.02); break;
-      case 'fx.delayTone': delayFilter.frequency.setTargetAtTime(value, t, 0.02); break;
       case 'fx.delaySend': delaySend.gain.setTargetAtTime(value, t, 0.02); break;
       case 'fx.verbSend': verbSend.gain.setTargetAtTime(value, t, 0.02); break;
-      case 'fx.verbSize': case 'fx.verbDamp': scheduleIR(); break;
-      case 'master.level': masterGain.gain.setTargetAtTime(value, t, 0.02); break;
+      case 'part.level': partLevel.gain.setTargetAtTime(value, t, 0.02); break;
+      case 'part.pan': partPan.pan.setTargetAtTime(value, t, 0.02); break;
       case 'voice.count':
         if (state.perf.mode === 'poly')
           voices.slice(value).forEach(v => { v.kill(t); v.state.note = null; });
@@ -717,13 +612,13 @@ export function createSynth(ctx, crusherReady) {
     }
   }
 
-  const getParam = (module, param) => state[module][param];
+  const getParam = (module, param) => state[module]?.[param];
 
   function getState() {
     const params = {};
     for (const [mod, group] of Object.entries(state))
       for (const [key, val] of Object.entries(group)) params[`${mod}.${key}`] = val;
-    return { name: 'Untitled', version: 1, params, modSlots: structuredClone(modSlots) };
+    return { params, modSlots: structuredClone(modSlots) };
   }
 
   function setState(preset) {
@@ -753,9 +648,6 @@ export function createSynth(ctx, crusherReady) {
     mirror.getFrequencyResponse(freqs, mag, phase);
   }
 
-  const getScope = array => analyser.getByteTimeDomainData(array);
-  const getSpectrum = array => analyser.getByteFrequencyData(array);
-
   const getVoiceStates = () => voices.map((v, i) => ({
     index: i,
     enabled: state.perf.mode === 'poly' ? i < state.voice.count : i < monoSet().length,
@@ -778,10 +670,8 @@ export function createSynth(ctx, crusherReady) {
     panic, setPedal, setBend, setModWheel, setModSlot,
     setArpEnabled, arpActive,
     setParam, getParam, getState, setState,
-    getFilterResponse, getScope, getSpectrum, effectiveCutoff, getVoiceStates,
-    get recStream() { return recDest.stream; },
+    getFilterResponse, effectiveCutoff, getVoiceStates,
     get held() { return heldNotes(); },
-    get sampleRate() { return ctx.sampleRate; },
     get crusherActive() { return !!crusherNode; }
   };
 }

@@ -1,4 +1,4 @@
-import { DEFAULTS, DEFAULT_SLOTS } from './constants.js';
+import { DEFAULTS, DEFAULT_SLOTS, MIXER_PARAMS, PART_DEFAULTS, MIXER_DEFAULTS } from './constants.js';
 
 /* ==========================================================================
    PRESETS — flat dotted-key params + modSlots, versioned (spec §9)
@@ -160,14 +160,87 @@ export function resolvePreset(preset) {
   return { params, modSlots };
 }
 
-export function applyPresetToEngine(engine, preset) {
-  const resolved = resolvePreset(preset);
-  for (const [path, val] of Object.entries(resolved.params)) {
-    const [mod, key] = path.split('.');
-    engine.setParam(mod, key, val);
+/* ==========================================================================
+   Phase 2 migration — routing a preset's flat, dotted-key params to the
+   part that owns the sound or the mixer that owns the mix.
+
+   Flattened once at module load, not per call: shallow objects of
+   primitives, so a spread copy per call is cheap and keeps neither half
+   from carrying a key it doesn't own.
+   ========================================================================== */
+function flatten(defaults) {
+  const out = {};
+  for (const [mod, group] of Object.entries(defaults))
+    for (const [key, val] of Object.entries(group)) out[`${mod}.${key}`] = val;
+  return out;
+}
+
+const PART_FLAT = flatten(PART_DEFAULTS);
+const MIXER_FLAT = flatten(MIXER_DEFAULTS);
+
+/* Accepts both v1 (flat, `{ params, modSlots }`, everything dotted
+   together — what a v11 patch file looks like) and v2 (`{ params,
+   modSlots, mixer: { params } }`, already split) shapes. Reset-then-
+   overlay, same as resolvePreset, so sparse files of either vintage
+   still load fully resolved on both halves. A v2 file's explicit
+   `mixer.params` — if present — wins over anything routed out of the
+   flat `params` bag, since it's the authoritative half for that shape. */
+export function splitPreset(preset) {
+  const partParams = { ...PART_FLAT };
+  const mixerParams = { ...MIXER_FLAT };
+
+  for (const [path, val] of Object.entries(preset.params ?? {})) {
+    if (MIXER_PARAMS.has(path)) {
+      if (path in mixerParams) mixerParams[path] = val;
+    } else if (path in partParams) {
+      partParams[path] = val;
+    }
   }
-  resolved.modSlots.forEach((slot, i) => engine.setModSlot(i, slot));
+  for (const [path, val] of Object.entries(preset.mixer?.params ?? {}))
+    if (path in mixerParams) mixerParams[path] = val;
+
+  const modSlots = DEFAULT_SLOTS.map(s => ({ ...s }));
+  (preset.modSlots ?? []).forEach((s, i) => { if (i < 4) modSlots[i] = { ...s }; });
+
+  return { part: { params: partParams, modSlots }, mixer: { params: mixerParams } };
+}
+
+/* Applies both halves of a split preset. `mixer` may be null — a part
+   built without its own mixer reference (e.g. a solo /synth session)
+   simply skips the mixer half rather than erroring. */
+export function applyPresetToPart(part, mixer, preset) {
+  const resolved = splitPreset(preset);
+
+  for (const [path, val] of Object.entries(resolved.part.params)) {
+    const [mod, key] = path.split('.');
+    part.setParam(mod, key, val);
+  }
+  resolved.part.modSlots.forEach((slot, i) => part.setModSlot(i, slot));
+
+  if (mixer) {
+    for (const [path, val] of Object.entries(resolved.mixer.params)) {
+      const [mod, key] = path.split('.');
+      mixer.setParam(mod, key, val);
+    }
+  }
+
   return resolved;
+}
+
+/* Serialises a part (+ optionally its mixer) into a v2 preset: the part's
+   own dotted params and modSlots at top level, the mixer's dotted params
+   nested under `mixer`, so a v1 loader ignoring the extra key still gets
+   a working (if effect-setting-less) patch. */
+export function partState(part, mixer, name) {
+  const p = part.getState();
+  const m = mixer ? mixer.getState() : { params: {} };
+  return {
+    name: name ?? 'Untitled',
+    version: 2,
+    params: p.params,
+    modSlots: p.modSlots,
+    mixer: { params: m.params }
+  };
 }
 
 /* ---- randomise: curated chaos, never touches master level or bend ---- */

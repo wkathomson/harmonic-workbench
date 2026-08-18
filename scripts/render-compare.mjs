@@ -38,9 +38,12 @@ const body = html.slice(html.indexOf('<script type="module">') + '<script type="
 const uiBanner = body.indexOf('/* ==========================================================================\n   UI');
 if (uiBanner < 0) throw new Error('could not find the UI banner in the reference build');
 fs.writeFileSync(path.join(tmp, 'ref-engine.js'), body.slice(0, uiBanner) + '\nexport { createSynth };\n');
+// The "new" side is a mixer plus one part — the shape the Workbench uses.
+// The reference side stays the original monolithic createSynth.
 fs.writeFileSync(path.join(tmp, 'entry-new.js'), [
-  `export { createSynth } from '${path.join(ROOT, 'src/audio/synth/synth.js')}';`,
-  `export { FACTORY } from '${path.join(ROOT, 'src/audio/synth/presets.js')}';`,
+  `export { createMixer } from '${path.join(ROOT, 'src/audio/synth/mixer.js')}';`,
+  `export { createPart } from '${path.join(ROOT, 'src/audio/synth/part.js')}';`,
+  `export { FACTORY, applyPresetToPart } from '${path.join(ROOT, 'src/audio/synth/presets.js')}';`,
 ].join('\n'));
 
 const bundle = (entry, name, out) => execFileSync('npx', [
@@ -69,11 +72,11 @@ const result = await page.evaluate(async () => {
   const seeded = (seed) => { let s = seed >>> 0; return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; }; };
   const realRandom = Math.random;
 
-  async function render(createSynth, preset) {
+  async function renderRef(preset) {
     const ctx = new OfflineAudioContext(2, 44100 * 4, 44100);
     ctx.createMediaStreamDestination = function () { return this.createGain(); };
     Math.random = seeded(20260818);
-    const engine = createSynth(ctx, false);
+    const engine = window.REFENG.createSynth(ctx, false);
     if (preset) {
       for (const [path, val] of Object.entries(preset.params ?? {})) {
         const [mod, key] = path.split('.');
@@ -94,12 +97,32 @@ const result = await page.evaluate(async () => {
     return [buf.getChannelData(0), buf.getChannelData(1)];
   }
 
+  // Phase 2 "new" side: one shared mixer + one part (poolSize 8), preset
+  // applied through applyPresetToPart — exercises the split, not the
+  // Phase 1 monolith.
+  async function renderNew(preset) {
+    const ctx = new OfflineAudioContext(2, 44100 * 4, 44100);
+    ctx.createMediaStreamDestination = function () { return this.createGain(); };
+    Math.random = seeded(20260818);
+    const mixer = window.NEWENG.createMixer(ctx);
+    const part = window.NEWENG.createPart(ctx, mixer, { poolSize: 8, crusherReady: false });
+    if (preset) window.NEWENG.applyPresetToPart(part, mixer, preset);
+    await new Promise((r) => setTimeout(r, 400));
+    part.noteOn(60, 0.9, 0.05); part.noteOff(60, 0.80);
+    part.noteOn(63, 0.6, 0.90); part.noteOff(63, 1.60);
+    part.noteOn(67, 1.0, 1.70); part.noteOff(67, 2.60);
+    part.noteOn(72, 0.4, 2.70); part.noteOff(72, 3.40);
+    const buf = await ctx.startRendering();
+    Math.random = realRandom;
+    return [buf.getChannelData(0), buf.getChannelData(1)];
+  }
+
   const cases = [['Init', null], ...Object.entries(window.NEWENG.FACTORY)];
   const out = [];
   for (const [name, preset] of cases) {
     const control = window.__CONTROL__;
-    const a = await render(window.REFENG.createSynth, preset);
-    const b = await render(control ? window.REFENG.createSynth : window.NEWENG.createSynth, preset);
+    const a = await renderRef(preset);
+    const b = control ? await renderRef(preset) : await renderNew(preset);
     let maxDiff = 0, rms = 0, peak = 0;
     for (let ch = 0; ch < 2; ch++) {
       for (let i = 0; i < a[ch].length; i++) {

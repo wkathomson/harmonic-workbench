@@ -14,6 +14,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSynth } from "./useSynth.js";
 import SynthPanel from "./SynthPanel.jsx";
 import SynthKeyboard from "./SynthKeyboard.jsx";
+import { getAudioContext } from "../../audio/context.js";
 import { DEFAULTS, DEFAULT_SLOTS, MIXER_PARAMS } from "../../audio/synth/constants.js";
 import {
   FACTORY, randomPreset, splitPreset, applyPresetToPart, partState,
@@ -44,6 +45,7 @@ export default function SynthRoute() {
   const [slots, setSlots] = useState(() => DEFAULT_SLOTS.map((s) => ({ ...s })));
   const [presetName, setPresetName] = useState("Init");
   const [recording, setRecording] = useState(false);
+  const [sampleRate, setSampleRate] = useState(null);
 
   // Values touched before the context exists are replayed once it does, so a
   // knob moved before power-on is not silently lost.
@@ -65,6 +67,7 @@ export default function SynthRoute() {
       pendingSlots.current = false;
     }
     setRunning(true);
+    setSampleRate(getAudioContext()?.sampleRate ?? null);
     return { part, mixer };
   }, [start, slots]);
 
@@ -239,24 +242,19 @@ export default function SynthRoute() {
           onSlotChange={onSlotChange}
           getResponse={running ? partRef.current?.getFilterResponse : null}
           getVoiceStates={running ? partRef.current?.getVoiceStates : null}
+          getScope={running ? mixerRef.current?.getScope : null}
+          getSpectrum={running ? mixerRef.current?.getSpectrum : null}
+          onPanic={() => partRef.current?.panic()}
+          crusherActive={running ? partRef.current?.crusherActive : undefined}
+          sampleRate={sampleRate}
           running={running}
         />
 
-        <div className="sy-perf">
-          <label className="sy-wheel">
-            <span>Mod wheel</span>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              defaultValue="0"
-              onChange={(e) => partRef.current?.setModWheel(Number(e.target.value))}
-            />
-          </label>
-        </div>
-
-        <SynthKeyboard onNoteOn={noteOn} onNoteOff={noteOff} />
+        <SynthKeyboard
+          onNoteOn={noteOn}
+          onNoteOff={noteOff}
+          onModWheel={(v) => partRef.current?.setModWheel(v)}
+        />
       </div>
     </div>
   );
