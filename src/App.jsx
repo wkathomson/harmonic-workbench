@@ -1136,16 +1136,6 @@ export default function App() {
 
           {mode === "arrange" && (
             <Section
-              num="S" title="Synth" color="var(--bw)"
-              open={openS.synth} toggle={() => togS("synth")}
-              badge={Object.values(synth.slots).some(s => s.on) ? "ON" : null}
-            >
-              <SynthParts synth={synth} />
-            </Section>
-          )}
-
-          {mode === "arrange" && (
-            <Section
               num="F" title="FX" color="var(--grn)"
               open={openS.fx} toggle={() => togS("fx")}
               badge={fx.delayPingPong ? "PP" : null}
@@ -1256,6 +1246,16 @@ export default function App() {
           >
             <ChordDesign design={chordDesign} onChange={onChordDesignChange} />
           </Section>
+
+          {mode === "arrange" && (
+            <Section
+              num="S" title="Synth" color="var(--bw)"
+              open={openS.synth} toggle={() => togS("synth")}
+              badge={Object.values(synth.slots).some(s => s.on) ? "ON" : null}
+            >
+              <SynthParts synth={synth} />
+            </Section>
+          )}
 
           {mode === "arrange" && (
           <Section

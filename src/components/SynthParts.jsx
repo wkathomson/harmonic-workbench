@@ -31,6 +31,14 @@ const SLOTS = [
 // else lives behind "Advanced". osc1.waveform is rendered separately (it's
 // a Switch, not a Knob) and part.level/part.pan aren't in params.js' `P`
 // table at all — see LEVEL_PAN below.
+// The three sends share the label "Send" in the parameter table, which is
+// fine under the full panel's headed subpanels but ambiguous in a single row.
+const STRIP_LABELS = {
+  "fx.delaySend": "Delay",
+  "fx.choSend": "Chorus",
+  "fx.verbSend": "Reverb",
+};
+
 const STRIP = [
   "filter.cutoff", "filter.resonance",
   "ampEnv.attack", "ampEnv.decay", "ampEnv.sustain", "ampEnv.release",
@@ -132,7 +140,7 @@ function SlotRow({ meta, synth }) {
         </button>
       </div>
 
-      <div className="hw-sp-strip">
+      <div className="hw-sp-strip instrument">
         <Switch
           options={WAVES}
           value={values["osc1.waveform"]}
@@ -140,7 +148,13 @@ function SlotRow({ meta, synth }) {
           label="Osc 1 wave"
         />
         {STRIP.map((path) => (
-          <Knob key={path} path={path} value={values[path]} onChange={(v) => write(path, v)} />
+          <Knob
+            key={path}
+            path={path}
+            label={STRIP_LABELS[path]}
+            value={values[path]}
+            onChange={(v) => write(path, v)}
+          />
         ))}
         <LevelPanSlider path="part.level" value={values["part.level"]} onChange={(v) => write("part.level", v)} />
         <LevelPanSlider path="part.pan" value={values["part.pan"]} onChange={(v) => write("part.pan", v)} />

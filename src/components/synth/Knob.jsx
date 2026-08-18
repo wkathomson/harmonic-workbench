@@ -39,7 +39,7 @@ const TICKS = Array.from({ length: 11 }, (_, i) => {
 });
 const TRACK_PATH = arcPath(ARC.start, ARC.end);
 
-export default function Knob({ path, value, onChange, disabled }) {
+export default function Knob({ path, value, onChange, disabled, label }) {
   const d = P[path];
   const gradId = useId();
 
@@ -161,7 +161,7 @@ export default function Knob({ path, value, onChange, disabled }) {
       className="knob"
       tabIndex={0}
       role="slider"
-      aria-label={d.label}
+      aria-label={label ?? d.label}
       aria-valuenow={Number(local.toFixed(4))}
       aria-valuetext={displayText}
       aria-disabled={disabled || undefined}
@@ -196,7 +196,7 @@ export default function Knob({ path, value, onChange, disabled }) {
         <circle className="knob-cap" cx="24" cy="24" r="13.2" style={{ fill: `url("#${gradId}")` }} />
         <line className="knob-pointer" x1="24" y1="24" x2={p.x.toFixed(2)} y2={p.y.toFixed(2)} />
       </svg>
-      <span className="knob-label">{d.label}</span>
+      <span className="knob-label">{label ?? d.label}</span>
       {editing ? (
         <input
           ref={inputRef}
