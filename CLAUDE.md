@@ -117,6 +117,23 @@ All of the below are built. Section numbers match the numbered panels in the UI.
 - Key/Scale, Piano Roll, Chords, Progression default open
 - Bass, Melody, Arp default closed
 
+## The synth engine
+`reference/web-synth-v11.html` — a complete subtractive synth — is now the
+Workbench's voice engine, extracted into `src/audio/synth/`. Any track
+(chords, bass, melody, arp) can be handed to it from the **Synth** panel in
+Arrange mode: pick a patch, shape it on the compact strip, or open the
+Advanced drawer for the full instrument. A track not handed over keeps its
+Tone voice, so the two can be mixed freely.
+
+Each part carries its own patch; the effects are shared. `#/synth` is the
+standalone instrument and the regression harness.
+
+Two things the Workbench UI does *not* reach into a synth-assigned track: the
+Voices panel macros and the global FX panel, both of which drive Tone voices
+only — a synth part has its own envelopes and its own sends to the synth
+mixer's effects. The mixer fader *is* bridged, so pulling a track down still
+works.
+
 ## Also built (beyond the original port scope)
 - **Drum machine** — 4 kits, own step grid, velocity editing
 - **Snapshots** — save/recall whole sessions to localStorage, plus autosave

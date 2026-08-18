@@ -1,0 +1,123 @@
+/* SynthParts panel — assigns a Workbench track (chords/bass/melody/arp) to
+   the synth engine. Workbench `hw-` idiom throughout; nothing here touches
+   `.instrument` (the ported synth stylesheet), which owns the Advanced
+   disclosure's look on its own. */
+
+.hw-sp { display: flex; flex-direction: column; gap: 8px; }
+
+.hw-sp-help {
+  font-size: .62rem;
+  color: var(--txf);
+  font-style: italic;
+  padding: 6px 8px 8px;
+  border-bottom: 1px dashed var(--bd);
+  margin-bottom: 2px;
+}
+.hw-sp-help strong { color: var(--txd); font-style: normal; }
+
+.hw-sp-row {
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-left: 3px solid var(--sc, var(--ac));
+  border-radius: 2px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hw-sp-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hw-sp-lbl {
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .18em;
+  min-width: 62px;
+}
+
+.hw-sp-preset {
+  background: var(--pn2);
+  border: 1px solid var(--bd);
+  color: var(--tx);
+  padding: 5px 6px;
+  font-family: inherit;
+  font-size: .62rem;
+  border-radius: 2px;
+  cursor: pointer;
+  max-width: 130px;
+}
+
+.hw-sp-name {
+  font-size: .62rem;
+  color: var(--txd);
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+}
+
+.hw-sp-adv {
+  margin-left: auto;
+  background: var(--pn2);
+  border: 1px solid var(--bd);
+  color: var(--txd);
+  padding: 5px 9px;
+  font-family: inherit;
+  font-size: .6rem;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all .12s;
+}
+.hw-sp-adv:hover { color: var(--tx); border-color: var(--bdb); }
+.hw-sp-adv.on { background: var(--sc, var(--ac)); border-color: var(--sc, var(--ac)); color: var(--bg); font-weight: 700; }
+
+.hw-sp-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--bd);
+}
+
+/* Level/Pan — not synth-patch params, so they aren't Knob-driven; styled as
+   small vertical sliders to sit comfortably alongside the knob strip. */
+.hw-sp-lp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 54px;
+  padding-top: 6px;
+}
+.hw-sp-lp-lbl {
+  font-size: .52rem;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--txf);
+}
+.hw-sp-lp input[type="range"] {
+  width: 100%;
+  accent-color: var(--sc, var(--ac));
+  cursor: pointer;
+}
+.hw-sp-lp-val {
+  font-size: .58rem;
+  color: var(--txd);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.hw-sp-advanced {
+  margin-top: 4px;
+  border-top: 1px dashed var(--bd);
+  padding-top: 8px;
+}

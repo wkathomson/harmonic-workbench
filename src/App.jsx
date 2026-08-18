@@ -25,6 +25,8 @@ import Progression from "./components/Progression.jsx";
 import TransportBar from "./components/TransportBar.jsx";
 import Mixer from "./components/Mixer.jsx";
 import Voices from "./components/Voices.jsx";
+import SynthParts from "./components/SynthParts.jsx";
+import { useWorkbenchSynth } from "./components/synth/useWorkbenchSynth.js";
 import FX from "./components/FX.jsx";
 import BassSequencer from "./components/BassSequencer.jsx";
 import MelodySequencer from "./components/MelodySequencer.jsx";
@@ -115,10 +117,16 @@ export default function App() {
   // ---- Collapsible sections ----
   const [openS, setOpenS] = useState({
     key: true, piano: true, chords: true, prog: true, snap: false,
-    mix: true, voices: false, fx: false, design: false, tracks: false, midi: false,
+    mix: true, voices: false, synth: false, fx: false, design: false, tracks: false, midi: false,
     bass: true, mel: true, arp: false, drums: true,
   });
   const togS = (k) => setOpenS(p => ({ ...p, [k]: !p[k] }));
+
+  // Synth parts: any track can be handed to the synth engine instead of its
+  // Tone voice. The hook owns the parts and the shared mixer; live control
+  // values stay in refs inside it rather than in App state, so a knob drag
+  // never re-renders the Workbench.
+  const synth = useWorkbenchSynth();
 
   // ---- Bass ----
   const [bassOn, setBassOn] = useState(false);
@@ -872,6 +880,8 @@ export default function App() {
     melOn, melPenta, melSteps, melOct, melMode, melFill, melDens, melEucH, melPat, melLock,
     arpOn, arpMode, arpRhythm, arpSteps, arpPat,
     drumOn, drumKit, drumSteps, drumPat,
+    // Patches travel with the project: one per slot, plus the shared mix.
+    synth: synth.collect(),
   });
 
   // Apply a saved snapshot. Each `??` fallback means an old snapshot missing
@@ -952,6 +962,12 @@ export default function App() {
     if (s.drumKit)   setDrumKit(s.drumKit);
     if (s.drumSteps) setDrumSteps(s.drumSteps);
     if (s.drumPat)   setDrumPat(s.drumPat);
+
+    // Synth patches. Async because switching a slot on may have to build the
+    // audio graph; restoring always happens from a click, so the gesture
+    // requirement is satisfied. Snapshots predating the synth simply have
+    // nothing here and every slot stays on its Tone voice.
+    if (s.synth) synth.apply(s.synth);
 
     // Clear transient bits that don't belong in a snapshot.
     setSelChord(null);
@@ -1115,6 +1131,16 @@ export default function App() {
                 onPreset={onVoicePreset}
                 onMacro={onVoiceMacro}
               />
+            </Section>
+          )}
+
+          {mode === "arrange" && (
+            <Section
+              num="S" title="Synth" color="var(--bw)"
+              open={openS.synth} toggle={() => togS("synth")}
+              badge={Object.values(synth.slots).some(s => s.on) ? "ON" : null}
+            >
+              <SynthParts synth={synth} />
             </Section>
           )}
 

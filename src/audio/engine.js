@@ -62,6 +62,22 @@ const VOICE_DEFAULTS = {
 const beats = (b) => ({ "4n": b });
 const TONAL_VOICES = ["piano", "pad", "bass", "acid", "melody", "arp"];
 
+// Which synth part a Tone voice hands over to, once that slot has one.
+// The chord voice normally layers piano+pad; a synth part replaces both with
+// a single patch, so both map to the same slot and `chord()` fires it once.
+const SYNTH_SLOT_OF = {
+  piano: "chord", pad: "chord",
+  bass: "bass", acid: "bass",
+  melody: "melody",
+  arp: "arp",
+};
+export const SYNTH_SLOTS = ["chord", "bass", "melody", "arp"];
+
+// Two Tone voices can share a slot (piano/pad, bass/acid). The mixer fader
+// bridge follows only the primary one, so two faders can't fight over a
+// single part's level.
+const PRIMARY_VOICE_OF = { chord: "piano", bass: "bass", melody: "melody", arp: "arp" };
+
 class AudioEngine {
   constructor() {
     this.started = false;
@@ -76,6 +92,11 @@ class AudioEngine {
     this.parts = [];
     this.endScheduleId = null;
     this.voiceState = buildInitialVoiceState();
+
+    // Synth engine parts, by slot. A slot with a part here takes over from the
+    // Tone voice of the same name — that is the whole switch. Empty by
+    // default, so nothing changes until a part is assigned.
+    this.synthParts = {};
 
     // Cached FX state (so the engine survives re-creation of nodes for ping-pong swap).
     this._delayTime = "8n.";
@@ -352,6 +373,13 @@ class AudioEngine {
   // ---- Mixer setters ------------------------------------------------------
 
   setVoiceGain(voice, value) {
+    // A track handed to the synth engine no longer passes through the Tone
+    // mixer channel, so the fader has to reach its part instead — otherwise
+    // pulling the bass down would leave the bass playing at full level.
+    const slot = SYNTH_SLOT_OF[voice];
+    if (slot && PRIMARY_VOICE_OF[slot] === voice && this.synthParts[slot]) {
+      this.synthParts[slot].setParam("part", "level", value);
+    }
     if (!this.gains?.[voice]) return;
     this.gains[voice].gain.rampTo(value, 0.05);
   }
@@ -489,13 +517,43 @@ class AudioEngine {
     this.parts.forEach(p => { p.loop = bool; });
   }
 
+  // ---- Synth parts --------------------------------------------------------
+
+  // Hand a slot over to a synth part, or pass null to give it back to Tone.
+  setSynthPart(slot, part) {
+    if (part) this.synthParts[slot] = part;
+    else delete this.synthParts[slot];
+  }
+
+  synthPartFor(voice) {
+    const slot = SYNTH_SLOT_OF[voice];
+    return slot ? this.synthParts[slot] : null;
+  }
+
+  // Every note in the app goes through here: live audition, chord audition and
+  // scheduled playback alike. If the voice's slot holds a synth part, the part
+  // plays it; otherwise the Tone voice does, exactly as before.
+  //
+  // `time` is an audio-clock time (or undefined for "now"), and `durSec` is
+  // seconds — the synth part schedules its own note-off rather than taking a
+  // duration, so the caller converts musical duration once.
+  _trigger(voice, midi, durSec, time, vel) {
+    const part = this.synthPartFor(voice);
+    if (part) {
+      const at = time ?? Tone.now();
+      part.noteOn(midi, vel, at);
+      part.noteOff(midi, at + durSec);
+      return;
+    }
+    const synth = this.voices[voice] || this.voices.piano;
+    synth.triggerAttackRelease(Tone.Frequency(midi, "midi").toNote(), durSec, time, vel);
+  }
+
   // ---- Free play ----------------------------------------------------------
 
   async note(midi, dur = 1.5, vel = 0.8, voice = "piano") {
     if (!this.started) await this.init();
-    const synth = this.voices[voice] || this.voices.piano;
-    const noteName = Tone.Frequency(midi, "midi").toNote();
-    synth.triggerAttackRelease(noteName, dur, undefined, vel);
+    this._trigger(voice, midi, dur, undefined, vel);
   }
 
   // `voice` defaults to the layered "chord" sound (piano + pad together).
@@ -506,8 +564,13 @@ class AudioEngine {
     if (!this.started) await this.init();
     const expanded = expandChord(notes, this._chordDesign);
     if (voice === "chord") {
-      this._fireExpanded(expanded, dur, "piano");
-      this._fireExpanded(expanded, dur, "pad");
+      // One synth patch stands in for the piano+pad layering; without a part
+      // assigned, both Tone layers fire as before.
+      if (this.synthParts.chord) this._fireExpanded(expanded, dur, "piano");
+      else {
+        this._fireExpanded(expanded, dur, "piano");
+        this._fireExpanded(expanded, dur, "pad");
+      }
       return;
     }
     this._fireExpanded(expanded, dur, voice);
@@ -515,13 +578,10 @@ class AudioEngine {
 
   // Fire a pre-expanded chord (list of { midi, secondsOffset, velMod } events).
   _fireExpanded(expanded, dur, voice) {
-    const synth = this.voices[voice] || this.voices.piano;
     const baseTime = Tone.now();
     expanded.forEach(({ midi, secondsOffset, velMod }) => {
-      const t = baseTime + secondsOffset;
-      const note = Tone.Frequency(midi, "midi").toNote();
       const vel = Math.max(0, Math.min(1, 0.6 * velMod));
-      synth.triggerAttackRelease(note, dur, t, vel);
+      this._trigger(voice, midi, dur, baseTime + secondsOffset, vel);
     });
   }
 
@@ -567,9 +627,15 @@ class AudioEngine {
           this.drum(value.drum, time, value.vel);
         } else {
           const v = value.voice || "piano";
-          const synth = this.voices[v] || this.voices.piano;
-          const noteName = Tone.Frequency(value.midi, "midi").toNote();
-          synth.triggerAttackRelease(noteName, beats(value.durBeats), time, value.vel);
+          // With chordVoice "both" the same note is scheduled twice, once per
+          // Tone layer, and the second carries midiSilent. A synth part is one
+          // instrument rather than two layers, so it takes the first event and
+          // ignores the duplicate — otherwise every chord note fires twice.
+          const duplicateLayer = value.midiSilent && this.synthPartFor(v);
+          if (!duplicateLayer) {
+            const durBeatsSec = (value.durBeats * 60) / Tone.getTransport().bpm.value;
+            this._trigger(v, value.midi, durBeatsSec, time, value.vel);
+          }
         }
       }
       // MIDI fan-out. Duration in seconds derived from current BPM so the
