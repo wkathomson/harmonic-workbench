@@ -1,0 +1,32 @@
+/* Standalone synth route. Uses the Workbench theme tokens from index.css so
+   the two look like one instrument; the full panel port refines this. */
+.sy { font-family: 'JetBrains Mono', monospace; background: var(--bg); color: var(--tx); min-height: 100vh; padding: 20px; font-size: 13px; }
+.sy * { box-sizing: border-box; }
+.sy-hdr { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex-wrap: wrap; border-bottom: 1px solid var(--bd); padding-bottom: 14px; margin-bottom: 16px; }
+.sy-hdr h1 { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 900; margin: 0; line-height: 1; }
+.sy-hdr h1 i { color: var(--ac); }
+.sy-sub { font-size: .65rem; color: var(--txf); text-transform: uppercase; letter-spacing: .3em; margin-top: 5px; }
+.sy-hc { display: flex; gap: 8px; align-items: center; }
+.sy button, .sy select { background: var(--pn); border: 1px solid var(--bd); color: var(--tx); font-family: inherit; font-size: .7rem; padding: 6px 10px; border-radius: 2px; cursor: pointer; }
+.sy button:hover { background: var(--pn2); }
+.sy button.on { background: var(--ac); color: var(--bg); font-weight: 700; border-color: var(--ac); }
+.sy-back { color: var(--txd); text-decoration: none; font-size: .65rem; text-transform: uppercase; letter-spacing: .12em; }
+.sy-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+.sy-row label { display: flex; gap: 6px; align-items: center; font-size: .6rem; text-transform: uppercase; letter-spacing: .12em; color: var(--txd); }
+.sy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px 16px; margin-bottom: 22px; }
+.sy-slider { display: grid; grid-template-columns: 74px 1fr 56px; align-items: center; gap: 8px; }
+.sy-lbl { font-size: .6rem; text-transform: uppercase; letter-spacing: .1em; color: var(--txd); }
+.sy-val { font-size: .65rem; color: var(--ac); text-align: right; }
+.sy input[type=range] { width: 100%; accent-color: var(--ac); }
+
+/* ---------- keyboard ---------- */
+.sy-kbwrap { border-top: 1px solid var(--bd); padding-top: 14px; }
+.sy-kbctl { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+.sy-kboct { font-size: .7rem; color: var(--ac); min-width: 30px; text-align: center; }
+.sy-keys { position: relative; display: flex; height: 130px; user-select: none; touch-action: none; }
+.sy-key { cursor: pointer; }
+.sy-key.wht { flex: 1 0 auto; background: var(--sk); border: 1px solid var(--bd); border-radius: 0 0 3px 3px; }
+.sy-key.blk { width: 0; overflow: visible; position: relative; z-index: 2; }
+.sy-key.blk::before { content: ''; position: absolute; left: -14px; top: 0; width: 28px; height: 62%; background: #1a1815; border: 1px solid #000; border-radius: 0 0 3px 3px; }
+.sy-key.wht[data-on] { background: var(--ac); }
+.sy-key.blk[data-on]::before { background: var(--acd); }

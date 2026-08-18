@@ -33,6 +33,7 @@ import {
   buildInitialVoiceState,
 } from "./presets.js";
 import { CHORD_DESIGN_DEFAULTS, expandChord } from "./chordDesign.js";
+import { ensureAudio } from "./context.js";
 import {
   sendNoteOn as midiOn,
   sendNoteOff as midiOff,
@@ -198,6 +199,9 @@ class AudioEngine {
 
   async init() {
     if (this.started) return;
+    // Build (or reuse) the application's one AudioContext and give it to Tone
+    // before any Tone node exists, so the synth engine and Tone share a clock.
+    await ensureAudio();
     await Tone.start();
 
     this.master = new Tone.Gain(0.7).toDestination();
