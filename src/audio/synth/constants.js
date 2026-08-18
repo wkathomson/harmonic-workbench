@@ -24,6 +24,41 @@ export const DEFAULTS = {
   master:    { level: 0.7, curve: 'exponential', tempo: 120, spread: 0 }
 };
 
+/* Effect settings belong to the mix and are shared by every part; send
+   amounts belong to the patch and travel with it. Everything else in
+   DEFAULTS — including fx.delaySend/choSend/verbSend, all three
+   fx.crush* (the crusher is a per-part insert), master.curve (envelope
+   curve) and master.spread (stereo spread across the part's own voice
+   pool) — stays with the part. */
+export const MIXER_PARAMS = new Set([
+  'fx.delayTime', 'fx.delaySync', 'fx.delayFeedback', 'fx.delayTone',
+  'fx.choRate', 'fx.choDepth',
+  'fx.verbSize', 'fx.verbDamp',
+  'master.level', 'master.tempo',
+]);
+
+/* Split DEFAULTS along the MIXER_PARAMS line so neither half carries a key
+   it doesn't own. Values are primitives, so a shallow copy is enough —
+   callers structuredClone() their own working copy off of these. */
+function splitDefaults(all, keep) {
+  const out = {};
+  for (const [mod, group] of Object.entries(all)) {
+    const g = {};
+    for (const [key, val] of Object.entries(group)) {
+      if (keep(`${mod}.${key}`)) g[key] = val;
+    }
+    if (Object.keys(g).length) out[mod] = g;
+  }
+  return out;
+}
+
+export const MIXER_DEFAULTS = splitDefaults(DEFAULTS, p => MIXER_PARAMS.has(p));
+export const PART_DEFAULTS = splitDefaults(DEFAULTS, p => !MIXER_PARAMS.has(p));
+/* two params createSynth never had: part output level and pan, inserted
+   in series after the bitcrush insert so behaviour is unchanged at their
+   defaults (level 1 = transparent gain, pan 0 = identity stereo pan) */
+PART_DEFAULTS.part = { level: 1, pan: 0 };
+
 export const DEFAULT_SLOTS = [
   { source: 'lfo1', destination: 'cutoff', amount: 0 },
   { source: 'off',  destination: 'off',    amount: 0 },
