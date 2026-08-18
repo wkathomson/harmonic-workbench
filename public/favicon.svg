@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Three notes in a piano roll, at the app's own colours: chord tones in
+       orange (--ac), an in-scale tone in cream (--sk). Staggered widths and
+       offsets so it reads as a voicing rather than a stack of bars.
+       Bar height and gaps are deliberately heavy — at a 16px favicon this
+       renders ~3px per bar, and anything finer closes up into a smudge. -->
+  <rect width="32" height="32" rx="7" fill="#15130f"/>
+  <rect x="5"  y="4"  width="14" height="6" rx="2" fill="#ff7a3c"/>
+  <rect x="10" y="13" width="17" height="6" rx="2" fill="#d4cfc0"/>
+  <rect x="5"  y="22" width="11" height="6" rx="2" fill="#ff7a3c"/>
+</svg>
