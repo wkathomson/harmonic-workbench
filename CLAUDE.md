@@ -282,9 +282,17 @@ made the brief's assumption wrong. The brief is the plan; this is what was actua
   contexts would mean two clocks and no way to schedule synth notes against the sequencer.
 
 - **`transport.js` wraps `Tone.Transport` rather than replacing it.** It exposes the
-  `subscribe(cb) → unsubscribe` contract from the brief, with `cb(beat, audioTime)` in
-  audio-clock time. The arpeggiator's own `setTimeout` loop becomes one subscriber. Rule 5
-  above holds: modules schedule against the audio clock and never start their own loops.
+  `subscribe(cb, division) → unsubscribe` contract from the brief, with `cb(beat, audioTime)`
+  in audio-clock time. `division` is Tone notation ('4n', '8t', '16n' …) so intervals stay
+  tempo-relative and a tempo change re-times the remaining steps forward instead of
+  stranding them. The arpeggiator's `setTimeout` loop is now one subscriber, so it locks to
+  the same clock as the sequencer. Rule 5 above holds: modules schedule against the audio
+  clock and never start their own loops.
+
+  Tempo has one owner: the transport. `master.tempo` on the mixer writes through to it and
+  reads back from it, so the sequencer, arp, LFO sync and delay sync cannot drift apart.
+  One behavioural consequence: engaging the arp starts the transport, because the arp can
+  no longer free-run on a timer of its own.
 
 - **The route is `#/synth`, not `/synth`.** The app has no router and GitHub Pages serves
   it from a sub-path, so a hash route works identically in dev and on Pages without adding

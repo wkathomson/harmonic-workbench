@@ -1,5 +1,6 @@
 import { clamp } from './util.js';
 import { MIXER_DEFAULTS, MIXER_PARAMS, SYNC_DIVS } from './constants.js';
+import { getTransport } from '../transport.js';
 
 /* --------------------------------------------------------------------------
    Mixer — the shared bus every part feeds. One delay, one chorus, one
@@ -15,7 +16,13 @@ import { MIXER_DEFAULTS, MIXER_PARAMS, SYNC_DIVS } from './constants.js';
    sends.reverb:  parts connect their own verbSend-amount gain here
    -------------------------------------------------------------------------- */
 export function createMixer(ctx) {
+  const transport = getTransport();
   const state = structuredClone(MIXER_DEFAULTS);
+  /* Adopt whatever tempo the transport is already running at rather than
+     forcing this mixer's default onto it — in the Workbench the project's
+     BPM is set before any mixer exists, and resetting it to 120 on
+     construction would be a nasty surprise. */
+  state.master.tempo = transport.getTempo();
 
   /* dry path: parts' finished (level/pan-applied) signal sums here and
      goes straight to the limiter, exactly as `post` did in createSynth */
@@ -128,13 +135,16 @@ export function createMixer(ctx) {
   function updateDelayTime(t) {
     const div = SYNC_DIVS[state.fx.delaySync]?.[1] ?? 0;
     const secs = div > 0
-      ? clamp(div * 60 / state.master.tempo, 0.02, 2)
+      ? clamp(div * 60 / transport.getTempo(), 0.02, 2)
       : state.fx.delayTime;
     delayNode.delayTime.setTargetAtTime(secs, t, 0.05);
   }
 
-  /* tempo lives here now, not duplicated per part. Parts subscribe so
-     they can re-run their own LFO-rate resolution when it changes. */
+  /* Tempo lives on the transport — one clock for the sequencer, the arp,
+     LFO sync and this delay alike. The mixer owns the *parameter*: writing
+     master.tempo writes through to the transport, and reads come back from
+     it, so nothing keeps a second copy that can drift. Parts subscribe here
+     so they can re-run their own LFO-rate resolution when it changes. */
   const tempoListeners = new Set();
   function onTempoChange(cb) {
     tempoListeners.add(cb);
@@ -168,6 +178,7 @@ export function createMixer(ctx) {
       case 'fx.verbSize': case 'fx.verbDamp': if (changed) scheduleIR(); break;
       case 'master.level': masterGain.gain.setTargetAtTime(value, t, 0.02); break;
       case 'master.tempo':
+        transport.setTempo(value);
         updateDelayTime(t);
         tempoListeners.forEach(cb => cb(value));
         break;
@@ -178,6 +189,9 @@ export function createMixer(ctx) {
   const getParam = (module, param) => state[module]?.[param];
 
   function getState() {
+    /* tempo lives on the transport, so read it back rather than trusting a
+       copy that another owner (the Workbench's BPM control) may have moved */
+    state.master.tempo = transport.getTempo();
     const params = {};
     for (const [mod, group] of Object.entries(state))
       for (const [key, val] of Object.entries(group)) params[`${mod}.${key}`] = val;
@@ -199,7 +213,7 @@ export function createMixer(ctx) {
     sends: { delay: delaySendBus, chorus: choSendBus, reverb: verbSendBus },
     setParam, getParam,
     getScope, getSpectrum,
-    getTempo: () => state.master.tempo,
+    getTempo: () => transport.getTempo(),
     onTempoChange,
     get recStream() { return recDest.stream; },
     getState, setState

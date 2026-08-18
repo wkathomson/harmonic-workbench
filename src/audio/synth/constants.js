@@ -98,5 +98,10 @@ export const SH_STEPS = 32;
 export const SH_STEP_HZ = 8;
 
 export const ARP_DIVS = [['1/4', 1], ['1/8', 0.5], ['1/8T', 1/3], ['1/16', 0.25], ['1/16T', 1/6], ['1/32', 0.125]];
+
+/* The same divisions in Tone notation, so the arpeggiator can subscribe to
+   the transport at a tempo-relative interval rather than converting beats to
+   seconds itself (which would strand scheduled steps on a tempo change). */
+export const ARP_NOTATION = ['4n', '8n', '8t', '16n', '16t', '32n'];
 /* symmetric fan: voice 0 centre, pairs widen outwards */
 export const PAN_POS = [0, -0.35, 0.35, -0.7, 0.7, -1, 1, -0.15];

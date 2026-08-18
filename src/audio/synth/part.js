@@ -1,9 +1,10 @@
 import { clamp } from './util.js';
 import {
-  DEFAULT_SLOTS, DEST_SCALE, SYNC_DIVS, ARP_DIVS, PAN_POS,
+  DEFAULT_SLOTS, DEST_SCALE, SYNC_DIVS, ARP_DIVS, ARP_NOTATION, PAN_POS,
   POOL_SIZE, KEY_CENTRE, STEAL_FADE, VOICE_HEADROOM,
   PART_DEFAULTS, MIXER_PARAMS
 } from './constants.js';
+import { getTransport } from '../transport.js';
 import { makeDriveCurve } from './curves.js';
 import { getTables } from './tables.js';
 import { createVoice } from './voice.js';
@@ -23,6 +24,7 @@ import { createLFO } from './lfo.js';
 export function createPart(ctx, mixer, opts = {}) {
   const poolSize = opts.poolSize ?? POOL_SIZE;
   const crusherReady = opts.crusherReady ?? false;
+  const transport = getTransport();
 
   const state = structuredClone(PART_DEFAULTS);
   const modSlots = structuredClone(DEFAULT_SLOTS);
@@ -388,23 +390,26 @@ export function createPart(ctx, mixer, opts = {}) {
   }
 
   /* ------------------------------------------------------------------
-     Arpeggiator — the "tale of two clocks" pattern. A setTimeout loop
-     wakes every 25ms and schedules any steps falling inside a 100ms
-     lookahead window onto the audio clock. Timer jitter is absorbed by
-     the window; the notes themselves land sample-accurately.
+     Arpeggiator — one subscriber to the shared transport.
+     The reference ran its own setTimeout lookahead loop here; that is now
+     the transport's job, so the arp locks to the same clock as the
+     Workbench sequencer instead of free-running alongside it. Each
+     callback schedules exactly one step at the audio time it is handed.
+     The division is Tone notation, so a tempo change re-times the
+     remaining steps rather than stranding them.
      ------------------------------------------------------------------ */
   let arpOn = false;
   let arpHeld = [];          // notes currently held, in press order
   let arpPattern = [];       // expanded across octaves
   let arpStep = 0;
-  let arpNextTime = 0;
-  let arpTimer = null;
+  let arpUnsub = null;
   let arpCurrent = null;     // note currently sounding from the arp
   let arpUpDown = 1;         // direction for up-down mode
   let arpLastNote = null;
 
   const arpInterval = () =>
     (ARP_DIVS[state.arp.rate]?.[1] ?? 0.5) * (60 / mixer.getTempo());
+  const arpDivision = () => ARP_NOTATION[state.arp.rate] ?? '8n';
 
   function buildPattern() {
     const base = arpHeld.map(h => h.note);
@@ -439,44 +444,50 @@ export function createPart(ctx, mixer, opts = {}) {
     return (arpStep + 1) % len;
   }
 
-  function scheduleArp() {
-    const lookahead = 0.1;
-    while (arpNextTime < ctx.currentTime + lookahead) {
-      if (!arpPattern.length) { arpNextTime = ctx.currentTime + arpInterval(); break; }
-      const interval = arpInterval();
-      const note = arpPattern[arpStep % arpPattern.length];
-      const vel = arpHeld.find(h => h.note % 12 === note % 12)?.velocity ?? 0.85;
+  /* One step, scheduled at the audio time the transport hands us. */
+  function arpTick(time) {
+    if (!arpPattern.length) return;
+    const interval = arpInterval();
+    const note = arpPattern[arpStep % arpPattern.length];
+    const vel = arpHeld.find(h => h.note % 12 === note % 12)?.velocity ?? 0.85;
 
-      /* release the previous arp note before starting the next, so mono
-         and poly both behave; gate is a fraction of the step */
-      if (arpLastNote !== null) realNoteOff(arpLastNote, arpNextTime - 0.001);
-      noteOn(note, vel, arpNextTime);
-      const gateLen = Math.max(0.02, interval * clamp(state.arp.gate, 0.05, 0.98));
-      realNoteOff(note, arpNextTime + gateLen);
-      arpLastNote = null;         // gate already scheduled its own off
-      arpCurrent = note;
+    /* release the previous arp note before starting the next, so mono
+       and poly both behave; gate is a fraction of the step */
+    if (arpLastNote !== null) realNoteOff(arpLastNote, time - 0.001);
+    noteOn(note, vel, time);
+    const gateLen = Math.max(0.02, interval * clamp(state.arp.gate, 0.05, 0.98));
+    realNoteOff(note, time + gateLen);
+    arpLastNote = null;         // gate already scheduled its own off
+    arpCurrent = note;
 
-      arpStep = arpNextIndex();
-      arpNextTime += interval;
-    }
-    arpTimer = setTimeout(scheduleArp, 25);
+    arpStep = arpNextIndex();
   }
 
   function arpStart() {
-    if (arpTimer) return;
+    if (arpUnsub) return;
     arpStep = 0;
     arpUpDown = 1;
-    arpNextTime = ctx.currentTime + 0.05;
-    scheduleArp();
+    arpLastNote = null;
+    /* the arp needs the clock running; on the standalone route nothing else
+       starts it, in the Workbench it is usually running already */
+    transport.start();
+    arpUnsub = transport.subscribe((beat, time) => arpTick(time), arpDivision());
   }
 
   function arpStop() {
-    clearTimeout(arpTimer);
-    arpTimer = null;
+    arpUnsub?.();
+    arpUnsub = null;
     const t = ctx.currentTime;
     if (arpCurrent !== null) realNoteOff(arpCurrent, t);
     arpCurrent = null;
     arpLastNote = null;
+  }
+
+  /* A rate change means a different subscription interval. */
+  function arpRetime() {
+    if (!arpUnsub) return;
+    arpUnsub();
+    arpUnsub = transport.subscribe((beat, time) => arpTick(time), arpDivision());
   }
 
   function arpNoteOn(note, velocity) {
@@ -548,8 +559,12 @@ export function createPart(ctx, mixer, opts = {}) {
       case 'osc1.fm': voices.forEach(v => v.setFm(value, t)); break;
       case 'master.spread': applySpread(t); break;
       case 'fx.choSend': choSend.gain.setTargetAtTime(value, t, 0.02); break;
-      case 'arp.rate': case 'arp.mode': case 'arp.octaves':
+      case 'arp.mode': case 'arp.octaves':
         buildPattern();
+        break;
+      case 'arp.rate':
+        buildPattern();
+        arpRetime();
         break;
       case 'osc1.coarse': case 'osc1.fine':
       case 'osc2.coarse': case 'osc2.fine':
