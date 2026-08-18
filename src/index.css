@@ -1,0 +1,914 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Playfair+Display:ital,wght@0,700;0,900;1,700;1,900&display=swap');
+
+/* ---------- Theme tokens + base ---------- */
+:root {
+  --bg: #15130f;
+  --bg2: #1c1a15;
+  --pn: #23201a;
+  --pn2: #2b2822;
+  --bd: #3a362d;
+  --bdb: #5a5244;
+  --tx: #e8e3d6;
+  --txd: #a09a8a;
+  --txf: #6a6456;
+  --ac: #ff7a3c;
+  --acd: #b8542a;
+  --acf: #4a2a18;
+  --bw: #9a6ee0;
+  --bwf: #3a2a55;
+  --grn: #8ab87a;
+  --grnf: #2a3a22;
+  --bass: #5cb8d4;
+  --mel: #e8b84a;
+  --melf: #3a2e18;
+  --arp: #e06ea0;
+  --ck: #ff7a3c;
+  --sk: #d4cfc0;
+  --dng: #c94a3c;
+}
+
+html, body, #root { margin: 0; padding: 0; background: var(--bg); }
+
+.hw {
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--bg);
+  color: var(--tx);
+  min-height: 100vh;
+  padding: 20px;
+  /* Bottom padding leaves room for the fixed transport bar so the last
+     panel isn't hidden behind it. */
+  padding-bottom: 90px;
+  font-size: 13px;
+}
+.hw * { box-sizing: border-box; }
+
+/* ---------- Header ---------- */
+.hw-hdr { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--bd); gap: 14px; flex-wrap: wrap; }
+.hw-t { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 900; margin: 0; line-height: 1; }
+.hw-t .a { color: var(--ac); font-style: italic; }
+.hw-st { font-size: .65rem; color: var(--txf); text-transform: uppercase; letter-spacing: .3em; margin-top: 5px; }
+.hw-hc { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ---------- Segmented button groups ---------- */
+.hw-sg { display: flex; background: var(--pn); border: 1px solid var(--bd); border-radius: 2px; overflow: hidden; }
+.hw-sg button { background: transparent; border: none; color: var(--txd); padding: 7px 10px; font-family: inherit; font-size: .63rem; text-transform: uppercase; letter-spacing: .12em; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all .15s; }
+.hw-sg button.on { background: var(--ac); color: var(--bg); font-weight: 700; }
+.hw-sg button:hover:not(.on) { color: var(--tx); background: var(--pn2); }
+
+/* ---------- Layout + collapsible sections ---------- */
+.hw-lay { display: grid; grid-template-columns: 1fr; gap: 14px; }
+@media (min-width: 1100px) { .hw-lay { grid-template-columns: 280px 1fr; } }
+
+.hw-s { background: var(--pn); border: 1px solid var(--bd); border-radius: 3px; margin-bottom: 2px; }
+.hw-s-cl { opacity: .85; }
+.hw-sh { display: flex; align-items: center; gap: 8px; padding: 12px 14px; width: 100%; background: none; border: none; color: var(--txf); font-family: inherit; font-size: .63rem; text-transform: uppercase; letter-spacing: .25em; cursor: pointer; }
+.hw-sh:hover { color: var(--tx); }
+.hw-sn { display: inline-block; width: 18px; height: 18px; border: 1px solid var(--bdb); text-align: center; line-height: 16px; font-size: .65rem; }
+.hw-sb { color: var(--bg); font-size: .55rem; padding: 2px 6px; border-radius: 2px; font-weight: 700; letter-spacing: .1em; }
+.hw-sc { padding: 0 14px 14px; }
+
+/* ---------- Generic controls ---------- */
+.hw-btn { background: var(--pn2); border: 1px solid var(--bd); color: var(--tx); padding: 6px 12px; font-family: inherit; font-size: .65rem; text-transform: uppercase; letter-spacing: .18em; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all .15s; border-radius: 2px; }
+.hw-btn:hover { border-color: var(--bdb); }
+.hw-btn.pri { background: var(--ac); border-color: var(--ac); color: var(--bg); font-weight: 700; }
+.hw-btn:disabled { opacity: .4; cursor: not-allowed; }
+.hw-inp { display: flex; align-items: center; gap: 6px; color: var(--txd); font-size: .63rem; text-transform: uppercase; letter-spacing: .18em; }
+.hw-inp input, .hw-inp select { background: var(--bg2); border: 1px solid var(--bd); color: var(--tx); padding: 5px 8px; font-family: inherit; font-size: .78rem; border-radius: 2px; width: 55px; }
+.hw-lbl { font-size: .6rem; text-transform: uppercase; letter-spacing: .22em; color: var(--txf); margin-bottom: 6px; display: block; }
+
+/* ---------- Note picker grid ---------- */
+.hw-ng { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; }
+.hw-nb { background: var(--pn2); border: 1px solid var(--bd); color: var(--txd); padding: 8px 3px; font-family: inherit; font-size: .8rem; cursor: pointer; border-radius: 2px; }
+.hw-nb:hover { color: var(--tx); border-color: var(--bdb); }
+.hw-nb.on { background: var(--ac); color: var(--bg); border-color: var(--ac); font-weight: 700; }
+.hw-ss { width: 100%; background: var(--pn2); border: 1px solid var(--bd); color: var(--tx); padding: 8px 10px; font-family: inherit; font-size: .8rem; border-radius: 2px; }
+.hw-ck { background: var(--bg2); border: 1px solid var(--bd); padding: 12px; text-align: center; border-radius: 2px; margin-top: 10px; }
+.hw-ck .v { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700; color: var(--ac); }
+.hw-ck .n { margin-top: 6px; font-size: .68rem; color: var(--txd); letter-spacing: .12em; }
+
+/* ---------- Piano roll ---------- */
+.hw-pi { position: relative; height: 150px; width: 100%; background: var(--bg2); border: 1px solid var(--bd); border-radius: 2px; }
+.hw-pk { position: absolute; bottom: 0; cursor: pointer; transition: background .08s, opacity .08s; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 7px; font-size: .55rem; font-weight: 600; user-select: none; gap: 1px; }
+.hw-pk-oct { font-size: .5rem; opacity: .7; }
+.hw-pk.wh { background: #6a6456; border: 1px solid #1a1813; color: #2a2620; z-index: 1; height: 100%; opacity: .35; }
+.hw-pk.bl { background: #2a2620; border: 1px solid #000; color: #4a453a; z-index: 2; height: 62%; opacity: .45; }
+.hw-pk.wh:hover { opacity: .55; }
+.hw-pk.bl:hover { opacity: .65; }
+.hw-pk.is.wh { background: var(--sk); color: #3a362d; opacity: 1; }
+.hw-pk.is.bl { background: #5a5244; color: var(--sk); opacity: 1; }
+.hw-pk.ct.wh { background: var(--ck); color: #1a1813; opacity: 1; }
+.hw-pk.ct.bl { background: #d96028; color: #fff; opacity: 1; }
+.hw-pk.ct.bw.wh { background: var(--bw); }
+.hw-pk.ct.bw.bl { background: #7a4ec0; }
+.hw-pk.ct.pi.wh { background: var(--grn); color: #1a1813; }
+.hw-pk.ct.po.wh { background: var(--mel); color: #1a1813; }
+
+.hw-pi-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
+.hw-oct { display: flex; align-items: center; gap: 6px; font-size: .6rem; text-transform: uppercase; letter-spacing: .22em; color: var(--txf); }
+.hw-oct button { background: var(--pn2); border: 1px solid var(--bd); color: var(--tx); width: 26px; height: 26px; cursor: pointer; border-radius: 2px; display: flex; align-items: center; justify-content: center; padding: 0; }
+.hw-oct button:hover { border-color: var(--ac); color: var(--ac); }
+.hw-oct button:disabled { opacity: .3; cursor: not-allowed; }
+.hw-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: .63rem; color: var(--txd); }
+.hw-legend-i { display: flex; align-items: center; gap: 5px; }
+.hw-sw { width: 12px; height: 12px; border: 1px solid var(--bd); border-radius: 2px; }
+
+/* ---------- Chord palette ---------- */
+.hw-cg { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+@media (max-width: 640px) { .hw-cg { grid-template-columns: repeat(4, 1fr); } }
+.hw-cb { background: var(--pn2); border: 1px solid var(--bd); padding: 12px 4px 8px; cursor: pointer; transition: all .15s; position: relative; border-radius: 2px; display: flex; flex-direction: column; align-items: center; gap: 3px; font-family: inherit; color: var(--tx); }
+.hw-cb:hover { border-color: var(--ac); transform: translateY(-1px); }
+.hw-cb.sel { background: var(--acf); border-color: var(--ac); box-shadow: 0 0 0 1px var(--ac); }
+.hw-cb.bw { border-color: var(--bw); border-style: dashed; }
+.hw-cb.bw:hover { border-style: solid; }
+.hw-cb.bw.sel { background: var(--bwf); box-shadow: 0 0 0 1px var(--bw); border-style: solid; }
+.hw-cb .rm { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-style: italic; color: var(--ac); font-weight: 700; line-height: 1; }
+.hw-cb.bw .rm { color: var(--bw); }
+.hw-cb .sy { font-size: .88rem; font-weight: 700; }
+.hw-cb .qu { font-size: .53rem; text-transform: uppercase; letter-spacing: .18em; color: var(--txf); }
+.hw-ab { position: absolute; top: 3px; right: 3px; background: var(--bg2); border: 1px solid var(--bd); color: var(--txf); width: 18px; height: 18px; border-radius: 2px; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: all .15s; padding: 0; }
+.hw-cb:hover .hw-ab { opacity: 1; }
+.hw-ab:hover { background: var(--ac); color: var(--bg); border-color: var(--ac); }
+
+/* ---------- Inversions + chord detail ---------- */
+.hw-inv { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 10px; background: var(--bg2); border-left: 3px solid var(--ac); border-radius: 2px; flex-wrap: wrap; }
+.hw-inv.bw { border-left-color: var(--bw); }
+.hw-iv { background: var(--pn2); border: 1px solid var(--bd); color: var(--txd); padding: 5px 10px; font-family: inherit; font-size: .65rem; cursor: pointer; border-radius: 2px; min-width: 44px; text-align: center; }
+.hw-iv:hover { color: var(--tx); border-color: var(--bdb); }
+.hw-iv.on { background: var(--ac); color: var(--bg); border-color: var(--ac); font-weight: 700; }
+.hw-inv.bw .hw-iv.on { background: var(--bw); border-color: var(--bw); }
+.hw-add-sel { margin-left: auto; background: var(--ac); border: 1px solid var(--ac); color: var(--bg); padding: 5px 10px; font-family: inherit; font-size: .62rem; text-transform: uppercase; letter-spacing: .18em; cursor: pointer; border-radius: 2px; display: flex; align-items: center; gap: 5px; font-weight: 700; }
+.hw-cd { margin-top: 10px; padding: 10px; background: var(--bg2); border-left: 3px solid var(--ac); border-radius: 2px; font-size: .72rem; color: var(--txd); }
+.hw-cd.bw { border-left-color: var(--bw); }
+.hw-cd strong { color: var(--tx); }
+
+/* ---------- Transpose explorer ---------- */
+.hw-tr-p { margin-top: 10px; background: var(--bg2); border: 1px solid var(--bd); border-radius: 2px; padding: 10px; }
+.hw-tr-r { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; margin: 4px 0; }
+@media (max-width: 900px) { .hw-tr-r { grid-template-columns: repeat(6, 1fr); } }
+.hw-tr-b { background: var(--pn2); border: 1px solid var(--bd); padding: 5px 2px; cursor: pointer; border-radius: 2px; display: flex; flex-direction: column; align-items: center; gap: 1px; font-family: inherit; color: var(--tx); transition: all .12s; position: relative; min-height: 50px; font-size: .7rem; }
+.hw-tr-b:hover { transform: translateY(-1px); }
+.hw-tr-b.in { border-color: var(--grn); background: var(--grnf); }
+.hw-tr-b.out { border-color: #8a7a4a; background: #2a2418; }
+.hw-tr-b.cur { border-color: var(--ac); background: var(--acf); }
+.hw-tr-b.pre { box-shadow: 0 0 0 2px var(--ac); }
+.hw-tr-b .sh { font-size: .55rem; color: var(--txf); font-weight: 700; }
+.hw-tr-b.cur .sh { color: var(--ac); }
+.hw-tr-b .ts { font-weight: 700; font-size: .72rem; line-height: 1.1; }
+.hw-tr-b .tf { font-size: .48rem; letter-spacing: .1em; text-transform: uppercase; }
+.hw-tr-b.in .tf { color: var(--grn); }
+.hw-tr-b.out .tf { color: var(--mel); }
+.hw-tr-ab { position: absolute; top: 1px; right: 1px; background: var(--bg2); border: 1px solid var(--bd); color: var(--txf); width: 14px; height: 14px; border-radius: 2px; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: all .15s; padding: 0; }
+.hw-tr-b:hover .hw-tr-ab { opacity: 1; }
+.hw-tr-ab:hover { background: var(--ac); color: var(--bg); }
+.hw-tr-lbl { font-size: .55rem; text-transform: uppercase; letter-spacing: .2em; color: var(--txf); margin: 4px 0 2px; }
+
+/* ---------- Progression builder ---------- */
+.hw-pr { display: flex; gap: 6px; align-items: stretch; flex-wrap: wrap; min-height: 80px; padding: 10px; background: var(--bg2); border: 1px dashed var(--bd); border-radius: 2px; }
+.hw-pc { background: var(--pn); border: 1px solid var(--bd); padding: 8px 12px 6px 5px; border-radius: 2px; position: relative; min-width: 78px; text-align: center; transition: all .15s; cursor: grab; display: flex; align-items: center; gap: 3px; }
+.hw-pc.bw { border-color: var(--bw); border-style: dashed; }
+.hw-pc.chr { border-color: var(--mel); border-style: dashed; }
+.hw-pc.act { background: var(--ac); border-color: var(--ac); border-style: solid; color: var(--bg); transform: scale(1.05); }
+.hw-pc.act .pc-rm { color: var(--bg); }
+.hw-pc.bw.act { background: var(--bw); }
+.hw-pc.chr.act { background: var(--mel); color: var(--bg); }
+.hw-pc.dg { opacity: .4; }
+.hw-pc.dov { transform: translateX(6px); border-color: var(--ac); }
+.hw-pc .pc-rm { font-family: 'Playfair Display', serif; font-style: italic; color: var(--ac); font-size: .78rem; font-weight: 700; }
+.hw-pc.bw .pc-rm { color: var(--bw); }
+.hw-pc.chr .pc-rm { color: var(--mel); }
+.hw-pc .pc-sy { font-weight: 700; font-size: .88rem; }
+.hw-pc-x { position: absolute; top: -5px; right: -5px; background: var(--dng); border: none; width: 16px; height: 16px; border-radius: 50%; color: var(--tx); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; font-size: 9px; z-index: 3; }
+
+/* ---------- Chord rhythm grid ---------- */
+.hw-cr { margin-top: 8px; }
+.hw-cr-row { display: flex; gap: 2px; align-items: center; margin-bottom: 4px; }
+.hw-cr-lbl { min-width: 65px; font-size: .6rem; color: var(--txd); }
+.hw-cr-lbl strong { color: var(--ac); font-family: 'Playfair Display', serif; font-style: italic; font-size: .78rem; }
+.hw-cr-steps { display: flex; gap: 1px; flex: 1; }
+.hw-cr-step { flex: 1; min-width: 10px; height: 22px; background: var(--pn2); border: 1px solid var(--bd); border-radius: 1px; cursor: pointer; transition: all .1s; }
+.hw-cr-step:hover { border-color: var(--ac); }
+.hw-cr-step.on { background: var(--ac); border-color: var(--ac); }
+.hw-cr-step.beat { border-left: 2px solid var(--bdb); }
+
+.hw-prog-ctrl { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.hw-suggs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.hw-sugg { background: var(--pn2); border: 1px solid var(--bd); color: var(--txd); padding: 6px 10px; font-family: inherit; font-size: .65rem; cursor: pointer; border-radius: 2px; display: flex; align-items: center; gap: 5px; transition: all .15s; }
+.hw-sugg:hover { background: var(--acf); color: var(--tx); border-color: var(--ac); }
+
+/* ---------- Bass / mel / arp sequencers ---------- */
+.hw-seq-ctrl { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; padding: 10px; background: var(--bg2); border: 1px solid var(--bd); border-radius: 2px; }
+.hw-seq { background: var(--bg2); border: 1px solid var(--bd); border-radius: 2px; padding: 6px; overflow-x: auto; }
+.hw-seq-row { display: flex; gap: 3px; align-items: center; margin-bottom: 4px; }
+.hw-seq-lbl { min-width: 80px; font-size: .62rem; color: var(--txd); display: flex; flex-direction: column; gap: 1px; }
+.hw-seq-lbl .cn { font-family: 'Playfair Display', serif; font-style: italic; font-size: .78rem; font-weight: 700; }
+.hw-seq-steps { display: flex; gap: 1px; flex: 1; min-width: 0; }
+.hw-seq-step { flex: 1; min-width: 12px; height: 24px; background: var(--pn2); border: 1px solid var(--bd); border-radius: 1px; cursor: pointer; position: relative; transition: all .1s; }
+.hw-seq-step:hover { border-color: var(--sc, var(--ac)); }
+.hw-seq-step.on { background: var(--sc, var(--ac)); border-color: var(--sc, var(--ac)); }
+.hw-seq-step.on.accent { box-shadow: inset 0 -3px 0 rgba(255, 255, 255, .4); }
+.hw-seq-step.on.slide { border-right: none; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.hw-seq-step.playing { box-shadow: 0 0 0 2px var(--ac); transform: scaleY(1.1); }
+.hw-seq-step.beat { border-left: 2px solid var(--bdb); }
+.hw-seq-step.bar  { border-left: 3px solid var(--ac); }
+.hw-seq-step .pch { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: .5rem; color: var(--bg); font-weight: 700; pointer-events: none; }
+/* Velocity fill on drum steps — opacity is set inline based on the step's
+   velocity, so quieter hits read dimmer at a glance. */
+.hw-dr-vel { position: absolute; inset: 0; background: var(--sc, var(--ac)); pointer-events: none; }
+.hw-seq-step.on .hw-dr-vel { background: rgba(255, 255, 255, .25); }
+.hw-seq-hint { font-size: .58rem; color: var(--txf); font-style: italic; letter-spacing: .05em; }
+
+/* ---------- Knob (jog dial) ---------- */
+.hw-knob {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  cursor: ns-resize;
+  user-select: none;
+  padding: 2px;
+}
+.hw-knob.disabled { opacity: .3; cursor: default; }
+.hw-knob-face {
+  position: relative;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  transition: border-color .1s;
+}
+.hw-knob:not(.disabled):hover .hw-knob-face { border-color: var(--knob-c, var(--ac)); }
+.hw-knob:not(.disabled):active .hw-knob-face { background: var(--bg3, var(--bg2)); }
+.hw-knob-ind {
+  position: absolute;
+  top: 4px; left: 50%;
+  width: 2px; height: 7px;
+  margin-left: -1px;
+  background: var(--knob-c, var(--ac));
+  transform-origin: 50% 7px;   /* pivot at the BOTTOM of the indicator (= dial centre) */
+  border-radius: 1px;
+  pointer-events: none;
+}
+.hw-knob-lbl {
+  font-size: .5rem;
+  text-transform: uppercase;
+  letter-spacing: .15em;
+  color: var(--txd);
+  font-weight: 700;
+}
+/* Delta badge that floats next to the knob during a drag, so the user
+   sees "+3" or "-2" as they rotate. */
+.hw-knob-delta {
+  position: absolute;
+  left: 26px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bg);
+  border: 1px solid var(--knob-c, var(--ac));
+  color: var(--knob-c, var(--ac));
+  font-size: .58rem;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 1px 4px;
+  border-radius: 2px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+}
+.hw-knob.dragging .hw-knob-face { border-color: var(--knob-c, var(--ac)); }
+
+/* Selected sequencer cell — outline that's clearly different from the
+   playing-now cursor (which uses a ring + scale). Selection is a static
+   user choice; playing is a transient highlight. */
+.hw-seq-step.sel {
+  outline: 2px solid var(--ac);
+  outline-offset: -2px;
+  z-index: 2;
+}
+.hw-seq-step.sel.on { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4) inset; }
+.hw-seq-empty { color: var(--txf); font-size: .68rem; font-style: italic; text-align: center; padding: 16px; }
+.hw-lock { background: none; border: 1px solid var(--bd); color: var(--txf); padding: 2px 4px; border-radius: 2px; cursor: pointer; display: flex; align-items: center; }
+.hw-lock.lk { color: var(--mel); border-color: var(--mel); }
+.hw-sub-t { font-size: .62rem; text-transform: uppercase; letter-spacing: .25em; color: var(--bw); margin: 14px 0 8px; display: flex; align-items: center; gap: 6px; }
+.hw-sub-t .dot { width: 7px; height: 7px; background: var(--bw); border-radius: 50%; }
+
+/* ---------- Sticky transport bar ---------- */
+/* Pinned to the bottom of the viewport — always within thumb reach. */
+.hw-tb {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 20;
+  background: var(--bg2);
+  border: 1px solid var(--bdb);
+  border-radius: 3px;
+  padding: 10px 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, .45);
+}
+.hw-tb-spacer { flex: 1; min-width: 12px; }
+
+/* ---------- Mixer ---------- */
+.hw-mx {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-radius: 2px;
+}
+.hw-mx-ch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 44px;
+  padding: 4px 2px;
+}
+.hw-mx-divider {
+  width: 1px;
+  background: var(--bd);
+  margin: 4px 4px;
+  align-self: stretch;
+}
+.hw-mx-lbl {
+  font-size: .55rem;
+  text-transform: uppercase;
+  letter-spacing: .15em;
+  font-weight: 700;
+}
+.hw-mx-val {
+  font-size: .6rem;
+  color: var(--txd);
+  font-family: 'JetBrains Mono', monospace;
+  min-height: 12px;
+}
+/* Vertical fader: a horizontal range input rotated -90deg so 0 is at the
+   bottom and 100 at the top. The wrap div reserves the visual footprint
+   (width × height) since the rotated input doesn't change layout flow.
+   This is more reliable across browsers than `writing-mode: vertical-lr`,
+   which still ships 0 at the top in Chrome despite the spec. */
+.hw-mx-fader-wrap {
+  width: 26px;
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hw-mx-fader {
+  width: 110px;
+  height: 26px;
+  transform: rotate(-90deg);
+  cursor: pointer;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.hw-mx-fader::-webkit-slider-runnable-track {
+  height: 4px;
+  background: var(--pn);
+  border-radius: 2px;
+}
+.hw-mx-fader::-moz-range-track {
+  height: 4px;
+  background: var(--pn);
+  border-radius: 2px;
+}
+.hw-mx-fader::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 14px;
+  background: var(--tx);
+  border: 1px solid var(--bdb);
+  border-radius: 2px;
+  margin-top: -5px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .4);
+}
+.hw-mx-fader::-moz-range-thumb {
+  width: 22px;
+  height: 14px;
+  background: var(--tx);
+  border: 1px solid var(--bdb);
+  border-radius: 2px;
+}
+
+/* ---------- Voices panel (presets + ADR / Tone / Sends macros) ---------- */
+.hw-vc { display: flex; flex-direction: column; gap: 6px; }
+.hw-vc-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--bd);
+}
+.hw-vc-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px 0;
+}
+.hw-vc-group-lbl {
+  font-size: .52rem;
+  text-transform: uppercase;
+  letter-spacing: .22em;
+  color: var(--txf);
+  margin-bottom: 2px;
+}
+.hw-vc-help {
+  font-size: .62rem;
+  color: var(--txf);
+  font-style: italic;
+  padding: 6px 8px 8px;
+  border-bottom: 1px dashed var(--bd);
+  margin-bottom: 4px;
+}
+.hw-vc-help strong { color: var(--txd); font-style: normal; }
+
+.hw-vc-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-radius: 2px;
+}
+.hw-vc-lbl {
+  font-size: .6rem;
+  text-transform: uppercase;
+  letter-spacing: .22em;
+  font-weight: 700;
+}
+.hw-vc-presets { display: flex; flex-wrap: wrap; gap: 3px; }
+.hw-vc-preset {
+  background: var(--pn2);
+  border: 1px solid var(--bd);
+  color: var(--txd);
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: .58rem;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all .12s;
+}
+.hw-vc-preset:hover { color: var(--tx); border-color: var(--bdb); }
+.hw-vc-preset.act {
+  background: var(--ac);
+  border-color: var(--ac);
+  color: var(--bg);
+  font-weight: 700;
+}
+
+.hw-vc-macros {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 2px;
+}
+.hw-vc-macro {
+  display: grid;
+  grid-template-columns: 32px 1fr 26px;
+  gap: 6px;
+  align-items: center;
+}
+.hw-vc-macro.wide {
+  grid-template-columns: 44px 1fr 26px;
+}
+.hw-vc-macro-lbl {
+  font-size: .55rem;
+  text-transform: uppercase;
+  letter-spacing: .15em;
+  color: var(--txf);
+}
+.hw-vc-macro-val {
+  font-size: .6rem;
+  color: var(--txd);
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+}
+.hw-vc-macro input[type="range"] {
+  width: 100%;
+  accent-color: var(--ac);
+  cursor: pointer;
+}
+
+/* ---------- Drum machine ---------- */
+/* Auditionable drum-row label: clickable button styled as a label. */
+.hw-dr-lbl {
+  background: none;
+  border: 1px solid var(--bd);
+  border-radius: 2px;
+  text-align: left;
+  padding: 4px 6px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .12s, background .12s;
+}
+.hw-dr-lbl:hover { border-color: var(--arp); background: var(--pn2); }
+.hw-dr-lbl .cn { font-family: 'Playfair Display', serif; font-style: italic; font-size: .9rem; font-weight: 700; }
+
+/* ---------- FX panel (global delay + reverb returns) ---------- */
+.hw-fx { display: flex; flex-direction: column; gap: 10px; }
+.hw-fx-section {
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-radius: 2px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hw-fx-title {
+  font-size: .6rem;
+  text-transform: uppercase;
+  letter-spacing: .25em;
+  font-weight: 700;
+}
+.hw-fx-row { display: flex; align-items: center; gap: 8px; }
+.hw-fx-slider {
+  display: grid;
+  grid-template-columns: 64px 1fr 32px;
+  gap: 8px;
+  align-items: center;
+}
+.hw-fx-lbl {
+  font-size: .58rem;
+  text-transform: uppercase;
+  letter-spacing: .18em;
+  color: var(--txd);
+  min-width: 56px;
+}
+.hw-fx-val {
+  font-size: .62rem;
+  color: var(--txd);
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+}
+.hw-fx-slider input[type="range"] {
+  width: 100%;
+  accent-color: var(--grn);
+  cursor: pointer;
+}
+.hw-fx-help {
+  font-size: .6rem;
+  color: var(--txf);
+  font-style: italic;
+  padding: 4px 6px;
+}
+.hw-fx-help strong { color: var(--txd); font-style: normal; }
+
+/* ---------- Chord Design panel (strum, direction, spread, humanise) ---------- */
+.hw-cd-p { display: flex; flex-direction: column; gap: 8px; }
+.hw-cd-help {
+  font-size: .6rem;
+  color: var(--txf);
+  font-style: italic;
+  padding: 4px 6px;
+  line-height: 1.45;
+}
+.hw-cd-help strong { color: var(--txd); font-style: normal; }
+.hw-cd-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 36px;
+  gap: 10px;
+  align-items: center;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-radius: 2px;
+  padding: 8px 10px;
+}
+.hw-cd-lbl {
+  font-size: .6rem;
+  text-transform: uppercase;
+  letter-spacing: .22em;
+  color: var(--txd);
+  font-weight: 700;
+}
+.hw-cd-val {
+  font-size: .62rem;
+  color: var(--txd);
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+}
+.hw-cd-row input[type="range"] {
+  width: 100%;
+  accent-color: var(--ac);
+  cursor: pointer;
+}
+
+/* ---------- Live MIDI Output panel ---------- */
+.hw-midi { display: flex; flex-direction: column; gap: 8px; }
+.hw-midi-help {
+  font-size: .6rem;
+  color: var(--txf);
+  font-style: italic;
+  padding: 4px 6px;
+  line-height: 1.45;
+  display: flex; align-items: flex-start; gap: 5px;
+}
+.hw-midi-help.warn { color: #d09a4a; font-style: normal; }
+.hw-midi-help strong { color: var(--txd); font-style: normal; }
+.hw-midi-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-radius: 2px;
+  padding: 8px 10px;
+}
+.hw-midi-lbl {
+  font-size: .6rem;
+  text-transform: uppercase;
+  letter-spacing: .22em;
+  color: var(--txd);
+  font-weight: 700;
+  min-width: 64px;
+}
+.hw-midi-sel {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  color: var(--tx);
+  padding: 4px 6px;
+  border-radius: 2px;
+  font-size: .7rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+.hw-midi-status {
+  display: flex; align-items: center; gap: 6px;
+  font-size: .65rem;
+  color: var(--grn);
+  text-transform: uppercase;
+  letter-spacing: .2em;
+  font-weight: 700;
+}
+.hw-midi-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--grn);
+  box-shadow: 0 0 6px var(--grn);
+}
+.hw-midi-channels {
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-radius: 2px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hw-midi-channels-lbl {
+  font-size: .58rem;
+  text-transform: uppercase;
+  letter-spacing: .22em;
+  color: var(--txd);
+  font-weight: 700;
+}
+.hw-midi-channels-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.hw-midi-ch {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.hw-midi-ch-lbl {
+  font-size: .55rem;
+  color: var(--txd);
+  letter-spacing: .15em;
+  text-transform: uppercase;
+}
+.hw-midi-ch input {
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  color: var(--tx);
+  padding: 4px 6px;
+  border-radius: 2px;
+  font-size: .7rem;
+  font-family: 'JetBrains Mono', monospace;
+  width: 100%;
+}
+
+/* ---------- Track Exports panel (per-track MIDI drag/download) ---------- */
+.hw-tx { display: flex; flex-direction: column; gap: 8px; }
+.hw-tx-help {
+  font-size: .6rem;
+  color: var(--txf);
+  font-style: italic;
+  padding: 4px 6px;
+  line-height: 1.45;
+}
+.hw-tx-help strong { color: var(--txd); font-style: normal; }
+.hw-tx-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.hw-tx-row {
+  display: grid;
+  grid-template-columns: 14px 70px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-radius: 2px;
+  padding: 6px 10px;
+  cursor: grab;
+  transition: border-color 80ms, background 80ms;
+}
+.hw-tx-row:hover {
+  border-color: var(--bdh);
+  background: var(--bg3, var(--bg2));
+}
+.hw-tx-row:active { cursor: grabbing; }
+.hw-tx-row.off {
+  cursor: default;
+  opacity: .45;
+}
+.hw-tx-row.off:hover { border-color: var(--bd); background: var(--bg2); }
+.hw-tx-lbl {
+  font-size: .65rem;
+  text-transform: uppercase;
+  letter-spacing: .22em;
+  font-weight: 700;
+}
+.hw-tx-hint {
+  font-size: .55rem;
+  color: var(--txf);
+  font-style: italic;
+  letter-spacing: .1em;
+}
+
+/* ---------- Snapshots panel ---------- */
+/* Container class is .hw-snap (NOT .hw-sn — that's the section-number badge). */
+.hw-snap { display: flex; flex-direction: column; gap: 8px; }
+.hw-snap-save { display: flex; gap: 6px; align-items: center; }
+.hw-snap-input {
+  flex: 1;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  color: var(--tx);
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: .72rem;
+  border-radius: 2px;
+  min-width: 0;
+}
+.hw-snap-input:focus {
+  outline: none;
+  border-color: var(--bw);
+}
+.hw-snap-empty {
+  padding: 10px 8px;
+  font-size: .65rem;
+  color: var(--txf);
+  font-style: italic;
+  text-align: center;
+  border: 1px dashed var(--bd);
+  border-radius: 2px;
+}
+.hw-snap-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.hw-snap-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-radius: 2px;
+  padding: 2px;
+}
+.hw-snap-item:hover { border-color: var(--bw); }
+.hw-snap-name {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--tx);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  padding: 5px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.hw-snap-nm {
+  font-size: .72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hw-snap-dt {
+  font-size: .55rem;
+  color: var(--txf);
+  letter-spacing: .1em;
+}
+.hw-snap-act {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--txd);
+  width: 22px;
+  height: 22px;
+  border-radius: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.hw-snap-act:hover {
+  border-color: var(--bdb);
+  color: var(--tx);
+}
+.hw-snap-act.danger:hover {
+  background: var(--dng);
+  color: var(--tx);
+  border-color: var(--dng);
+}
+
+/* ---------- Variation suggestions ---------- */
+.hw-var {
+  margin-top: 12px;
+  padding: 10px;
+  background: var(--bg2);
+  border: 1px solid var(--bw);
+  border-left-width: 3px;
+  border-radius: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hw-var-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.hw-var-x {
+  background: none;
+  border: 1px solid var(--bd);
+  color: var(--txf);
+  width: 22px;
+  height: 22px;
+  border-radius: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.hw-var-x:hover { color: var(--tx); border-color: var(--bdb); }
+.hw-var-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px;
+  background: var(--pn);
+  border: 1px solid var(--bd);
+  border-radius: 2px;
+  flex-wrap: wrap;
+}
+.hw-var-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 200px;
+}
+.hw-var-label {
+  font-size: .58rem;
+  text-transform: uppercase;
+  letter-spacing: .22em;
+  color: var(--bw);
+  font-weight: 700;
+}
+.hw-var-desc {
+  font-size: .68rem;
+  color: var(--txd);
+  font-style: italic;
+}
+.hw-var-chords {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+.hw-var-ch {
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-radius: 2px;
+  padding: 3px 6px;
+  font-size: .7rem;
+  font-weight: 700;
+  color: var(--tx);
+}
+.hw-var-acts { display: flex; gap: 6px; }

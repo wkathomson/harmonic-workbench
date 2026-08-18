@@ -1,0 +1,61 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "harmonic-workbench",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "/Users/willthomson/Documents/Claude Code/harmonic-workbench",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5173"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "budget-app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "/Users/willthomson/Documents/Claude Code/budget-app",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5174"
+      ],
+      "port": 5174
+    },
+    {
+      "name": "shopping-list",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "/Users/willthomson/Documents/Claude Code/shopping-list",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5175"
+      ],
+      "port": 5175
+    },
+    {
+      "name": "noticeboard-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "/Users/willthomson/Documents/Claude Code/norlington-noticeboard",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5176"
+      ],
+      "port": 5176
+    }
+  ]
+}
