@@ -251,6 +251,20 @@ the extracted engine modules. After any change to `src/audio/`, that route must 
 identical to `reference/web-synth-v11.html`. It is the regression target for the whole
 audio layer – check it before wiring anything into the Workbench UI.
 
+`scripts/render-compare.mjs` makes that check objective. It renders the same note sequence
+through the reference engine and through `src/audio/synth/`, offline in headless Chromium,
+for every factory preset, and compares the samples. Run it after any change to the audio
+layer:
+
+```
+npm install --no-save playwright     # not a project dependency
+node scripts/render-compare.mjs
+```
+
+Chromium's own rendering is not bit-reproducible between two OfflineAudioContexts, so the
+pass threshold is that noise floor (1e-4, about -80 dB) rather than zero. `CONTROL=1` runs
+the reference against itself to show the baseline.
+
 ## Decisions taken during the integration
 
 These deviate from `docs/synth-integration-brief.md` where the Workbench as it stands

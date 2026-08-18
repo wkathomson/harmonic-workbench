@@ -1,0 +1,478 @@
+/* Scoped port of the reference stylesheet — reference/web-synth-v11.html
+   <style> block, lines 10–487. Every rule is namespaced under `.instrument`
+   so it cannot leak into (or be leaked into by) the rest of the Workbench
+   UI. Page-chrome-only rules (html/body margin, page background) are
+   dropped; body's font-family/color are folded into `.instrument` itself
+   so the panel keeps its look. Nothing else is changed. */
+
+.instrument{
+  --surround:#221F1C;
+  --surround-2:#2B2825;
+  --panel:#B9B6AE;
+  --panel-hi:#C7C4BC;
+  --panel-lo:#A19E96;
+  --recess:#8F8C84;
+  --engrave:#2B2924;
+  --engrave-soft:#5C594F;
+  --emboss:rgba(255,255,255,.42);
+
+  --c-source:#C08A2E;
+  --c-filter:#4C7286;
+  --c-contour:#77854A;
+  --c-mod:#7A5A8A;
+  --c-fx:#4C8677;
+  --c-output:#8B4A62;
+
+  --lcd-bg:#191509;
+  --lcd-grid:#3A2E12;
+  --lcd-ink:#F0A83C;
+  --lcd-ink-dim:#8A6220;
+
+  --metal-dark:#3A3733;
+  --metal-mid:#57534D;
+
+  --fs-legend:.6875rem;
+  --fs-value:.625rem;
+}
+
+.instrument, .instrument *{box-sizing:border-box}
+
+.instrument{
+  font-family:'Saira Condensed','Arial Narrow',system-ui,sans-serif;
+  color:var(--engrave);
+}
+
+.instrument{
+  max-width:1180px; margin:0 auto;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.028) 0 1px, transparent 1px 3px),
+    linear-gradient(168deg, var(--panel-hi) 0%, var(--panel) 44%, var(--panel-lo) 100%);
+  border-radius:3px;
+  border-top:1px solid rgba(255,255,255,.5);
+  border-bottom:1px solid rgba(0,0,0,.4);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.25) inset,
+    0 24px 60px -18px rgba(0,0,0,.8),
+    0 2px 6px rgba(0,0,0,.5);
+  overflow:hidden;
+}
+
+.instrument .masthead{
+  display:flex; align-items:baseline; gap:.9rem; flex-wrap:wrap;
+  padding:.85rem clamp(.85rem,2vw,1.4rem) .75rem;
+  border-bottom:1px solid var(--recess);
+  box-shadow:0 1px 0 var(--emboss);
+}
+.instrument .wordmark{
+  font-size:clamp(1rem,2.4vw,1.35rem); font-weight:700;
+  letter-spacing:.24em; text-transform:uppercase; margin:0;
+  text-shadow:0 1px 0 var(--emboss);
+}
+.instrument .subtitle{
+  font-family:'DM Mono',ui-monospace,monospace;
+  font-size:var(--fs-value); letter-spacing:.06em;
+  color:var(--engrave-soft); margin:0; margin-right:auto;
+}
+.instrument .power{
+  display:flex; align-items:center; gap:.5rem;
+  background:none; border:0; padding:.3rem .1rem; cursor:pointer;
+  font:inherit; font-size:var(--fs-legend); font-weight:600;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--engrave);
+  text-shadow:0 1px 0 var(--emboss);
+}
+.instrument .led{
+  width:8px; height:8px; border-radius:50%; background:#4A2A12;
+  box-shadow:0 0 0 1px rgba(0,0,0,.5) inset, 0 1px 0 var(--emboss);
+}
+.instrument .power[aria-pressed="true"] .led{
+  background:var(--lcd-ink);
+  box-shadow:0 0 0 1px rgba(0,0,0,.4) inset, 0 0 7px 1px rgba(240,168,60,.75);
+}
+
+.instrument .preset-bar{
+  display:flex; align-items:center; gap:.45rem; flex-wrap:wrap;
+  padding:.5rem clamp(.85rem,2vw,1.4rem);
+  border-bottom:1px solid var(--recess);
+  box-shadow:0 1px 0 var(--emboss);
+}
+.instrument .preset-legend{
+  font-size:.5625rem; font-weight:700; letter-spacing:.2em;
+  text-transform:uppercase; text-shadow:0 1px 0 var(--emboss);
+}
+.instrument .preset-select{
+  font-family:'DM Mono',monospace; font-size:.5625rem;
+  letter-spacing:.03em; color:var(--engrave);
+  background:linear-gradient(180deg,#B4B1A9,#9C9991);
+  border:1px solid var(--recess); border-radius:2px;
+  padding:.32rem .3rem; cursor:pointer; min-width:9rem;
+}
+.instrument .preset-select:focus-visible{outline:2px solid var(--lcd-ink)}
+.instrument .pbtn{
+  font:inherit; font-size:.5625rem; font-weight:600;
+  letter-spacing:.12em; text-transform:uppercase; cursor:pointer;
+  padding:.34rem .55rem; border-radius:2px;
+  border:1px solid var(--recess); color:var(--engrave);
+  background:linear-gradient(180deg,#B4B1A9,#9C9991);
+  box-shadow:0 1px 0 var(--emboss);
+}
+.instrument .pbtn:active{box-shadow:0 1px 4px rgba(0,0,0,.4) inset}
+.instrument .pbtn[aria-pressed="true"]{
+  background:linear-gradient(180deg,var(--metal-dark),var(--metal-mid));
+  color:#F0A83C; text-shadow:0 -1px 0 rgba(0,0,0,.6);
+  box-shadow:0 1px 4px rgba(0,0,0,.45) inset;
+}
+.instrument .pbtn:focus-visible{outline:2px solid var(--lcd-ink); outline-offset:1px}
+.instrument .preset-name{
+  margin-left:auto;
+  font-family:'DM Mono',monospace; font-size:.5625rem;
+  letter-spacing:.06em; color:var(--engrave-soft);
+}
+.instrument .preset-name b{color:var(--engrave); font-weight:500}
+
+.instrument .rack{display:grid; align-items:stretch}
+.instrument .rack-upper{grid-template-columns:1fr; border-bottom:1px solid var(--recess); box-shadow:0 1px 0 var(--emboss)}
+.instrument .rack-mod{grid-template-columns:minmax(0,.72fr) minmax(0,.72fr) minmax(0,1.56fr);
+  border-bottom:1px solid var(--recess); box-shadow:0 1px 0 var(--emboss)}
+.instrument .rack-lower{grid-template-columns:minmax(0,1.14fr) minmax(0,1.34fr) minmax(0,1fr)}
+
+.instrument .module{
+  padding:0 0 1rem;
+  border-right:1px solid var(--recess);
+  box-shadow:1px 0 0 var(--emboss);
+  min-width:0;
+}
+.instrument .module:last-child{border-right:0; box-shadow:none}
+
+.instrument .module-head{
+  display:flex; align-items:center; gap:.5rem;
+  padding:.5rem clamp(.7rem,1.4vw,1rem) .55rem;
+  margin-bottom:.35rem;
+  border-bottom:1px solid var(--recess);
+  box-shadow:0 1px 0 var(--emboss);
+  cursor:pointer; user-select:none; -webkit-user-select:none;
+}
+.instrument .module-head:focus-visible{outline:2px solid var(--lcd-ink); outline-offset:-2px}
+.instrument .fold{
+  font-size:.55rem; color:var(--engrave-soft); flex:none;
+  display:inline-block; transition:transform .12s ease;
+}
+.instrument .module[data-collapsed="true"] .fold{transform:rotate(-90deg)}
+.instrument .module[data-collapsed="true"] > *:not(.module-head){display:none}
+.instrument .module[data-collapsed="true"]{padding-bottom:0}
+.instrument .module[data-collapsed="true"] .module-head{margin-bottom:0; border-bottom:0; box-shadow:none}
+.instrument .stripe{width:14px; height:14px; border-radius:1px; flex:none;
+  box-shadow:0 0 0 1px rgba(0,0,0,.35) inset, 0 1px 0 var(--emboss)}
+.instrument .module h2{
+  font-size:var(--fs-legend); font-weight:700; margin:0;
+  letter-spacing:.2em; text-transform:uppercase;
+  text-shadow:0 1px 0 var(--emboss);
+}
+.instrument .module-index{
+  margin-left:auto; font-family:'DM Mono',monospace;
+  font-size:.5625rem; color:var(--engrave-soft); letter-spacing:.08em;
+}
+.instrument .m-source .stripe{background:var(--c-source)}
+.instrument .m-filter .stripe{background:var(--c-filter)}
+.instrument .m-contour .stripe{background:var(--c-contour)}
+.instrument .m-mod .stripe{background:var(--c-mod)}
+.instrument .m-fx .stripe{background:var(--c-fx)}
+.instrument .m-output .stripe{background:var(--c-output)}
+.instrument .m-mod .knob-fill{stroke:var(--c-mod)}
+.instrument .m-fx .knob-fill{stroke:var(--c-fx)}
+
+.instrument .rack-fx{grid-template-columns:1fr; border-top:1px solid var(--recess); box-shadow:0 1px 0 var(--emboss)}
+.instrument .fx-grid{display:grid; grid-template-columns:.8fr 1.4fr .9fr .9fr}
+
+.instrument .source-grid{display:grid; grid-template-columns:1fr 1fr .82fr}
+.instrument .subpanel{
+  border-right:1px solid var(--recess);
+  box-shadow:1px 0 0 var(--emboss);
+  padding-bottom:.5rem; min-width:0;
+}
+.instrument .subpanel:last-child{border-right:0; box-shadow:none}
+.instrument .subpanel h3{
+  font-size:.5625rem; font-weight:700; letter-spacing:.18em;
+  text-transform:uppercase; margin:.45rem clamp(.7rem,1.4vw,1rem) .15rem;
+  text-shadow:0 1px 0 var(--emboss);
+}
+
+.instrument .bank{display:flex; flex-wrap:wrap; gap:.35rem .1rem; padding:.15rem clamp(.5rem,1.2vw,.8rem)}
+.instrument .bank.tight{gap:.2rem 0}
+
+.instrument .sub{
+  font-family:'DM Mono',monospace; font-size:.5625rem;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--engrave-soft);
+  padding:.55rem clamp(.7rem,1.4vw,1rem) .1rem;
+}
+.instrument .sub::before{content:"— "}
+
+.instrument .selector{padding:.2rem clamp(.7rem,1.4vw,1rem) .35rem}
+.instrument .selector-legend{
+  font-size:.5625rem; font-weight:600; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--engrave-soft);
+  display:block; margin-bottom:.3rem;
+}
+.instrument .switch{
+  display:flex; border-radius:2px; overflow:hidden;
+  border:1px solid var(--recess);
+  box-shadow:0 1px 0 var(--emboss), 0 1px 3px rgba(0,0,0,.28) inset;
+  background:var(--recess);
+}
+.instrument .switch button{
+  flex:1 1 0; min-width:0;
+  font:inherit; font-size:.5625rem; font-weight:600;
+  letter-spacing:.06em; text-transform:uppercase;
+  padding:.4rem .05rem; cursor:pointer;
+  border:0; border-right:1px solid rgba(0,0,0,.22);
+  background:linear-gradient(180deg,#B4B1A9,#9C9991);
+  color:var(--engrave-soft);
+  text-shadow:0 1px 0 rgba(255,255,255,.3);
+}
+.instrument .switch button:last-child{border-right:0}
+.instrument .switch button[aria-checked="true"]{
+  background:linear-gradient(180deg,var(--metal-dark),var(--metal-mid));
+  color:#E4E0D6; text-shadow:0 -1px 0 rgba(0,0,0,.6);
+  box-shadow:0 1px 4px rgba(0,0,0,.45) inset;
+}
+.instrument .switch button:focus-visible{outline:2px solid var(--lcd-ink); outline-offset:-2px; z-index:1}
+
+.instrument .knob{
+  width:clamp(3.7rem,5.2vw,4.4rem);
+  display:flex; flex-direction:column; align-items:center; gap:.1rem;
+  padding:.2rem .1rem .1rem;
+  border-radius:2px; cursor:ns-resize;
+  touch-action:none; user-select:none; -webkit-user-select:none;
+}
+.instrument .knob:focus-visible{outline:2px solid var(--lcd-ink); outline-offset:0}
+.instrument .knob svg{display:block; width:100%; height:auto; overflow:visible}
+.instrument .knob-label{
+  font-size:.5625rem; font-weight:600; letter-spacing:.1em;
+  text-transform:uppercase; text-align:center; line-height:1.15;
+  text-shadow:0 1px 0 var(--emboss);
+}
+.instrument .knob-value{
+  font-family:'DM Mono',monospace; font-size:.5625rem;
+  color:var(--engrave-soft); font-variant-numeric:tabular-nums;
+  cursor:text; border-bottom:1px dotted transparent;
+}
+.instrument .knob:hover .knob-value{border-bottom-color:var(--engrave-soft)}
+.instrument .knob-input{
+  width:3.6rem; font-family:'DM Mono',monospace; font-size:.5625rem;
+  text-align:center; color:var(--lcd-ink); background:var(--lcd-bg);
+  border:1px solid var(--recess); border-radius:2px; padding:.05rem .1rem;
+}
+.instrument .knob-input:focus{outline:1px solid var(--lcd-ink)}
+.instrument .knob[data-active="true"] .knob-value{color:var(--engrave); font-weight:500}
+.instrument .knob-track{stroke:#8A8780; stroke-width:3; fill:none}
+.instrument .knob-fill{stroke-width:3; fill:none}
+.instrument .knob-tick{stroke:var(--engrave-soft); stroke-width:1; opacity:.5}
+.instrument .knob-tick.major{stroke:var(--engrave); opacity:.8; stroke-width:1.2}
+.instrument .knob-cap-edge{fill:#6E6A64}
+.instrument .knob-cap{fill:url(#capGrad)}
+.instrument .knob-pointer{stroke:#EDE9DF; stroke-width:2.2; stroke-linecap:round}
+.instrument .m-source .knob-fill{stroke:var(--c-source)}
+.instrument .m-filter .knob-fill{stroke:var(--c-filter)}
+.instrument .m-contour .knob-fill{stroke:var(--c-contour)}
+.instrument .m-output .knob-fill{stroke:var(--c-output)}
+.instrument .knob[data-inactive="true"]{opacity:.4; pointer-events:none}
+.instrument .knob[data-learning="true"]{
+  outline:2px dashed var(--lcd-ink); outline-offset:-2px;
+  animation:learnPulse 1s ease-in-out infinite;
+}
+@keyframes learnPulse{50%{outline-color:rgba(240,168,60,.3)}}
+
+.instrument .screen{
+  background:radial-gradient(110% 140% at 50% 0%, #241C0C 0%, var(--lcd-bg) 68%);
+  border-radius:2px; border:1px solid #0C0A05;
+  box-shadow:0 2px 7px rgba(0,0,0,.7) inset, 0 1px 0 var(--emboss);
+  position:relative; overflow:hidden;
+}
+.instrument .screen::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px);
+}
+.instrument .screen canvas{display:block; width:100%; height:100%}
+.instrument .screen-tag{
+  position:absolute; top:5px; left:7px; z-index:2;
+  font-family:'DM Mono',monospace; font-size:.5rem;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--lcd-ink-dim);
+}
+.instrument .screen-read{
+  position:absolute; top:5px; right:7px; z-index:2;
+  font-family:'DM Mono',monospace; font-size:.5625rem;
+  letter-spacing:.03em; color:var(--lcd-ink); font-variant-numeric:tabular-nums;
+}
+.instrument .screen-toggle{
+  position:absolute; bottom:5px; right:7px; z-index:3;
+  font-family:'DM Mono',monospace; font-size:.5rem;
+  letter-spacing:.1em; text-transform:uppercase;
+  color:var(--lcd-ink-dim); background:none; border:1px solid var(--lcd-grid);
+  border-radius:2px; padding:.15rem .4rem; cursor:pointer;
+}
+.instrument .screen-toggle:hover{color:var(--lcd-ink)}
+.instrument .screen-toggle:focus-visible{outline:1px solid var(--lcd-ink)}
+
+.instrument .env-graph{margin:.35rem clamp(.7rem,1.4vw,1rem) 0; height:74px}
+.instrument .env-graph svg{display:block; width:100%; height:100%; overflow:visible; touch-action:none}
+.instrument .env-axis{stroke:var(--lcd-grid); stroke-width:1}
+.instrument .env-path{fill:none; stroke:var(--lcd-ink); stroke-width:1.75; stroke-linejoin:round}
+.instrument .env-area{fill:rgba(240,168,60,.13)}
+.instrument .env-handle{fill:var(--lcd-bg); stroke:var(--lcd-ink); stroke-width:1.5; cursor:grab}
+.instrument .env-handle:hover{fill:var(--lcd-ink)}
+.instrument .env-hit{fill:transparent; cursor:grab}
+
+.instrument .wave-window{margin:.3rem clamp(.7rem,1.4vw,1rem) .1rem; height:46px}
+.instrument .lfo-window{margin:.3rem clamp(.7rem,1.4vw,1rem) .1rem; height:38px}
+.instrument .drive-window{margin:.3rem clamp(.7rem,1.4vw,1rem) .1rem; height:64px; width:calc(100% - 2*clamp(.7rem,1.4vw,1rem))}
+
+/* ---------- mod matrix ---------- */
+.instrument .matrix{padding:.15rem clamp(.7rem,1.4vw,1rem) 0; display:flex; flex-direction:column; gap:.3rem}
+.instrument .mslot{
+  display:grid; grid-template-columns:1fr auto 1.25fr auto;
+  align-items:center; gap:.45rem;
+  padding:.25rem .45rem;
+  border:1px solid var(--recess); border-radius:2px;
+  box-shadow:0 1px 0 var(--emboss);
+}
+.instrument .mslot select{
+  font-family:'DM Mono',monospace; font-size:.5625rem;
+  letter-spacing:.03em; color:var(--engrave);
+  background:linear-gradient(180deg,#B4B1A9,#9C9991);
+  border:1px solid var(--recess); border-radius:2px;
+  padding:.3rem .2rem; min-width:0; width:100%;
+  cursor:pointer;
+}
+.instrument .mslot select:focus-visible{outline:2px solid var(--lcd-ink)}
+.instrument .mslot .arrow{font-family:'DM Mono',monospace; font-size:.625rem; color:var(--engrave-soft)}
+.instrument .mslot .knob{width:3.4rem; padding-top:0}
+.instrument .mslot[data-off="true"]{opacity:.55}
+
+.instrument .pool{padding:.5rem clamp(.7rem,1.4vw,1rem) .1rem}
+.instrument .pool-legend{
+  font-size:.5625rem; font-weight:600; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--engrave-soft);
+  display:block; margin-bottom:.4rem;
+}
+.instrument .vleds{display:flex; gap:5px; align-items:center}
+.instrument .vled{
+  width:9px; height:9px; border-radius:50%; flex:none; background:#3A2410;
+  box-shadow:0 0 0 1px rgba(0,0,0,.55) inset, 0 1px 0 var(--emboss);
+}
+.instrument .vled[data-disabled="true"]{background:#96938B; box-shadow:0 0 0 1px rgba(0,0,0,.3) inset}
+.instrument .pool-read{
+  font-family:'DM Mono',monospace; font-size:.5625rem;
+  color:var(--engrave-soft); margin-top:.35rem;
+}
+
+.instrument .panic{
+  margin:.6rem clamp(.7rem,1.4vw,1rem) 0;
+  font:inherit; font-size:.5625rem; font-weight:600;
+  letter-spacing:.16em; text-transform:uppercase; cursor:pointer;
+  padding:.4rem .6rem; border-radius:2px;
+  border:1px solid var(--recess); color:var(--engrave);
+  background:linear-gradient(180deg,#B4B1A9,#9C9991);
+  box-shadow:0 1px 0 var(--emboss);
+}
+.instrument .panic:active{box-shadow:0 1px 4px rgba(0,0,0,.4) inset}
+.instrument .panic:focus-visible{outline:2px solid var(--lcd-ink); outline-offset:1px}
+
+.instrument .instruments-row{
+  display:grid; grid-template-columns:1fr 1fr; gap:.75rem;
+  padding:.85rem clamp(.85rem,2vw,1.4rem);
+  border-top:1px solid var(--recess);
+  box-shadow:0 -1px 0 rgba(0,0,0,.18), 0 1px 0 var(--emboss) inset;
+}
+.instrument .instruments-row .screen{height:132px}
+
+.instrument .keybed{
+  padding:.85rem clamp(.85rem,2vw,1.4rem) 1.1rem;
+  border-top:1px solid var(--recess);
+  box-shadow:0 1px 0 var(--emboss) inset;
+}
+.instrument .keybed-bar{display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; margin-bottom:.6rem}
+.instrument .keybed-bar .hint{
+  font-family:'DM Mono',monospace; font-size:.5625rem;
+  color:var(--engrave-soft); margin-left:auto;
+}
+.instrument .midi-read{
+  font-family:'DM Mono',monospace; font-size:.5625rem;
+  color:var(--engrave-soft); letter-spacing:.04em;
+}
+.instrument .wheel-group{display:flex; align-items:center; gap:.4rem;
+  font-size:.5625rem; font-weight:600; letter-spacing:.14em; text-transform:uppercase}
+.instrument .wheel-group input[type="range"]{
+  width:88px; accent-color:#8B6A24; cursor:pointer;
+}
+.instrument .oct{display:flex; align-items:center; gap:.4rem;
+  font-size:.5625rem; font-weight:600; letter-spacing:.14em; text-transform:uppercase}
+.instrument .oct button{
+  font:inherit; width:1.5rem; height:1.5rem; cursor:pointer;
+  border:1px solid var(--recess); border-radius:2px;
+  background:linear-gradient(180deg,#B4B1A9,#9C9991);
+  color:var(--engrave); line-height:1; box-shadow:0 1px 0 var(--emboss);
+}
+.instrument .oct button:active{box-shadow:0 1px 3px rgba(0,0,0,.4) inset}
+.instrument .oct-read{font-family:'DM Mono',monospace; min-width:2.2rem; text-align:center; color:var(--engrave-soft)}
+
+.instrument .keys{
+  position:relative; height:clamp(88px,13vw,116px);
+  display:grid; grid-template-columns:repeat(14,1fr);
+  touch-action:none;
+  filter:drop-shadow(0 3px 5px rgba(0,0,0,.35));
+}
+.instrument .key{border:1px solid #6E6A63; border-top:0; cursor:pointer; -webkit-user-select:none; user-select:none}
+.instrument .key.white{
+  position:relative;
+  background:linear-gradient(180deg,#F2EFE6 0%,#E2DED2 88%,#CDC9BD 100%);
+  border-radius:0 0 2px 2px; margin-left:-1px;
+}
+.instrument .key.white:first-child{margin-left:0}
+.instrument .key.white[data-on="true"]{background:linear-gradient(180deg,#D9C08A 0%,#C9A85F 100%)}
+.instrument .key.black{
+  position:absolute; top:0; z-index:2;
+  width:calc(100% / 14 * 0.62); height:62%;
+  background:linear-gradient(180deg,#413D38 0%,#22201D 88%,#100F0D 100%);
+  border:1px solid #0C0B09; border-top:0; border-radius:0 0 2px 2px;
+  box-shadow:0 2px 4px rgba(0,0,0,.5);
+}
+.instrument .key.black[data-on="true"]{background:linear-gradient(180deg,#8A6A2A 0%,#6B4F17 100%)}
+.instrument .key-name{
+  position:absolute; bottom:5px; left:0; right:0; text-align:center;
+  font-family:'DM Mono',monospace; font-size:.5rem;
+  color:var(--engrave-soft); pointer-events:none;
+}
+
+.instrument .colophon{
+  padding:.7rem clamp(.85rem,2vw,1.4rem) .9rem;
+  border-top:1px solid var(--recess);
+  box-shadow:0 1px 0 var(--emboss) inset;
+  font-family:'DM Mono',monospace; font-size:.5625rem; line-height:1.7;
+  color:var(--engrave-soft);
+}
+.instrument .colophon b{color:var(--engrave); font-weight:500}
+
+@media (max-width:940px){
+  .instrument .rack-lower{grid-template-columns:1fr 1fr}
+  .instrument .rack-lower .module{border-bottom:1px solid var(--recess)}
+  .instrument .rack-lower .module:nth-child(2n){border-right:0; box-shadow:none}
+  .instrument .rack-mod{grid-template-columns:1fr 1fr}
+  .instrument .rack-mod .module:last-child{grid-column:1/-1; border-top:1px solid var(--recess)}
+}
+@media (max-width:820px){
+  .instrument .source-grid{grid-template-columns:1fr 1fr}
+  .instrument .fx-grid{grid-template-columns:1fr 1fr}
+  .instrument .subpanel:nth-child(2){border-right:0; box-shadow:none}
+  .instrument .subpanel:nth-child(-n+2){border-bottom:1px solid var(--recess)}
+}
+@media (max-width:620px){
+  .instrument .rack-lower{grid-template-columns:1fr}
+  .instrument .rack-lower .module{border-right:0; box-shadow:none}
+  .instrument .rack-mod{grid-template-columns:1fr}
+  .instrument .rack-mod .module{border-right:0; box-shadow:none; border-bottom:1px solid var(--recess)}
+  .instrument .source-grid{grid-template-columns:1fr}
+  .instrument .fx-grid{grid-template-columns:1fr}
+  .instrument .subpanel{border-right:0; box-shadow:none; border-bottom:1px solid var(--recess)}
+  .instrument .instruments-row{grid-template-columns:1fr}
+  .instrument .knob{width:clamp(3.9rem,20vw,4.6rem)}
+}
+@media (prefers-reduced-motion:reduce){ .instrument, .instrument *{transition:none !important} }
