@@ -4,12 +4,25 @@
 A browser-based music theory sandbox and idea generator for electronic music producers. Built as a React app. The user (Will) is a music producer, DJ, and monthly radio host — not a developer. He programs notes into hardware sequencers (Dirtywave M8, Polyend Tracker) and DAWs (Ableton Live) but doesn't play an instrument, so he needs tools that help him understand what notes/chords work together and generate musical ideas he can export as MIDI.
 
 ## Current state
-The file `prototype.jsx` contains the complete v5 single-file prototype built iteratively in Claude.ai artifacts. It works but is reaching the limits of single-file architecture. This project is the proper multi-file port.
+The port is done. Every feature listed below is built and working, plus a
+good deal that was originally filed as future work (drum machine, snapshots,
+live MIDI out). Roughly 6,900 lines across 36 files in `src/`.
+
+- Repo: https://github.com/wkathomson/harmonic-workbench (public)
+- Live: https://wkathomson.github.io/harmonic-workbench/
+- Local dev: `npm run dev` → http://localhost:5173
+
+GitHub Pages rebuilds the live site automatically from `.github/workflows/deploy.yml`
+on every push to `main` — there's no manual deploy step.
+
+The original v5 single-file prototype (`prototype.jsx`) has been removed now
+that this supersedes it. It's still in git history at `git show 6575500:prototype.jsx`,
+as is the standalone single-file build Pages used to serve: `git show d822b2a:index.html`.
 
 ## Tech stack
 - React (Vite)
 - Tone.js for audio (replaces raw Web Audio API from the prototype — gives us proper synth sounds, 303 filter emulation, transport sync, effects)
-- WebMidi.js for live MIDI output (future)
+- Native Web MIDI API for live MIDI output (no library). Chromium-only — Safari and Firefox get a "not available" notice instead
 - No UI framework — custom CSS, dark theme with warm tones inspired by hardware music gear (Teenage Engineering, Elektron aesthetic)
 
 ## Design principles
@@ -19,7 +32,8 @@ The file `prototype.jsx` contains the complete v5 single-file prototype built it
 - **Educational but optional**: theory explanations available on demand, never in the way
 - **Instrument-grade aesthetic**: dark background, monospace type for data, serif for headings, warm orange accent colour, collapsible sections for density control
 
-## Features to port from prototype
+## Features
+All of the below are built. Section numbers match the numbered panels in the UI.
 
 ### 1. Key & Scale Picker
 - 12 root notes, 8 scales/modes (Major, Minor, Dorian, Phrygian, Lydian, Mixolydian, Harmonic Minor, Melodic Minor)
@@ -103,26 +117,37 @@ The file `prototype.jsx` contains the complete v5 single-file prototype built it
 - Key/Scale, Piano Roll, Chords, Progression default open
 - Bass, Melody, Arp default closed
 
-## Improvements to make in the proper version
+## Also built (beyond the original port scope)
+- **Drum machine** — 4 kits, own step grid, velocity editing
+- **Snapshots** — save/recall whole sessions to localStorage, plus autosave
+- **Live MIDI out** — device picker, per-track channels, MIDI clock, local-monitor toggle
+- **Mixer** — 8 channels with per-channel reset
+- **Voices** — per-voice presets and A/D/R/Tone/Reverb/Delay macros
+- **Global FX** — ping-pong delay, reverb size
+- **Chord Design** — strum, spread, humanise; shapes every chord event
+- **Compose / Arrange mode split** — theory panels vs pattern panels, Progression bridges both
+- **Per-track MIDI export** — download one part at a time
+- **Voice-leading tools** — Smooth (minimises movement between chords) and Variations
 
-### Audio
-- Replace raw Web Audio oscillators with Tone.js synths
-- Proper 303 emulation: Tone.MonoSynth with filter envelope, portamento for slides, accent via velocity
-- Better piano/pad sounds using Tone.PolySynth
-- Proper transport sync using Tone.Transport instead of setTimeout scheduling
-- Add reverb/delay sends for melody and arp
+## Architecture
+- `src/theory/` — pure functions, no React, no audio. Scales, chords, rhythm, bass, drums
+- `src/audio/` — `engine.js` is a singleton service wrapping Tone.js; presets and chord design alongside it
+- `src/components/` — one file per UI panel
+- `src/utils/` — MIDI file writing, snapshot persistence, click disambiguation
+- `App.jsx` holds all state and wires the panels together
 
-### Architecture
-- Split into modules: `src/audio/`, `src/theory/`, `src/components/`, `src/utils/`
-- Separate component files for PianoRoll, ChordPalette, Progression, Sequencer, etc.
-- Theory engine as pure functions in its own module
-- Audio engine as a singleton service
+Scheduling goes through `Tone.Transport` with `Tone.Part`, not `setTimeout`.
+Edits made mid-playback hot-swap the Parts so they land on the next loop
+without an audible stop/start.
 
-### Future features (not for initial port)
-- Percussion/drum machine with step sequencer
-- Swing/humanisation on export
-- Snapshots (save/recall progression + settings)
-- Web MIDI output to connected soft synths
+### Known pressure point
+`App.jsx` is ~1,350 lines and owns every piece of state. It's the same
+single-file pressure the port was meant to relieve, just moved up a level.
+Pulling the sequencer state (bass/melody/arp/drums) into custom hooks would
+take most of the weight out of it. Not urgent.
+
+## Future features
+- Swing/humanisation on export (humanise exists live in Chord Design, but `midiExport.js` doesn't apply it — exports are dead-straight)
 - Global transpose control
 - Density macro (single knob controlling overall busyness)
 - Pattern length per chord (1x, 2x, 0.5x)
