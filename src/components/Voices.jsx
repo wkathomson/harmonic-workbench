@@ -1,16 +1,25 @@
 import { VOICE_LIST, VOICE_PRESETS } from "../audio/presets.js";
+import { synthSlotForVoice } from "../audio/engine.js";
 
 // One row per voice. Each row groups:
 //   - Preset chips (starting sound)
 //   - Envelope: Attack / Decay / Release
 //   - Tone (filter cutoff)
 //   - Sends: Reverb / Delay
-function VoiceRow({ voiceKey, label, color, state, onPreset, onMacro }) {
+function VoiceRow({ voiceKey, label, color, state, onPreset, onMacro, onSynth }) {
   const presets = VOICE_PRESETS[voiceKey];
   const presetKeys = Object.keys(presets);
 
+  // A track handed to the synth engine has its own oscillators, envelopes and
+  // sends. None of these macros reach it, so the row says so rather than
+  // offering controls that quietly do nothing.
   return (
-    <div className="hw-vc-row">
+    <div className={"hw-vc-row" + (onSynth ? " hw-vc-onsynth" : "")}>
+      {onSynth && (
+        <div className="hw-vc-synthnote">
+          On the synth engine — shape this sound in the <strong>Synth</strong> panel.
+        </div>
+      )}
       <div className="hw-vc-head">
         <div className="hw-vc-lbl" style={{ color }}>{label}</div>
         <div className="hw-vc-presets">
@@ -62,7 +71,7 @@ function Macro({ label, value, onChange, wide }) {
   );
 }
 
-export default function Voices({ voiceState, onPreset, onMacro }) {
+export default function Voices({ voiceState, onPreset, onMacro, synthSlots = {} }) {
   return (
     <div className="hw-vc">
       <div className="hw-vc-help">
@@ -74,6 +83,7 @@ export default function Voices({ voiceState, onPreset, onMacro }) {
         <VoiceRow
           key={v.key}
           voiceKey={v.key}
+          onSynth={!!synthSlots[synthSlotForVoice(v.key)]?.on}
           label={v.label}
           color={v.color}
           state={voiceState[v.key]}

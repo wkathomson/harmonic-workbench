@@ -31,7 +31,12 @@ function Slider({ label, value, min, max, step, fmt, onChange }) {
   );
 }
 
-export default function FX({ fx, onChange }) {
+export default function FX({ fx, onChange, synthSlots = {} }) {
+  // These effects belong to the Tone voices and the drums. A track on the
+  // synth engine sends to the synth's own delay/chorus/reverb instead, set
+  // per patch — so say so rather than let the panel look global when it
+  // isn't.
+  const onSynth = Object.entries(synthSlots).filter(([, v]) => v?.on).map(([k]) => k);
   return (
     <div className="hw-fx">
       <div className="hw-fx-section">
@@ -72,6 +77,12 @@ export default function FX({ fx, onChange }) {
 
       <div className="hw-fx-help">
         Per-voice <strong>Rev</strong> / <strong>Dly</strong> sends are in the Voices panel.
+        {onSynth.length > 0 && (
+          <>
+            {" "}These effects don't reach {onSynth.join(", ")} — {onSynth.length > 1 ? "those tracks are" : "that track is"} on
+            the synth engine, which has its own delay, chorus and reverb in the <strong>Synth</strong> panel.
+          </>
+        )}
       </div>
     </div>
   );

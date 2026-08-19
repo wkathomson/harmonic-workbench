@@ -912,3 +912,13 @@ html, body, #root { margin: 0; padding: 0; background: var(--bg); }
   color: var(--tx);
 }
 .hw-var-acts { display: flex; gap: 6px; }
+
+/* A voice handed to the synth engine: its macros no longer reach it, so the
+   row is dimmed and labelled rather than left looking live. */
+.hw-vc-onsynth .hw-vc-head,
+.hw-vc-onsynth .hw-vc-group { opacity: .35; pointer-events: none; }
+.hw-vc-synthnote {
+  font-size: .6rem; color: var(--bw); text-transform: uppercase;
+  letter-spacing: .1em; margin-bottom: 6px;
+}
+.hw-vc-synthnote strong { color: var(--tx); }

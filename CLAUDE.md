@@ -131,8 +131,15 @@ standalone instrument and the regression harness.
 Two things the Workbench UI does *not* reach into a synth-assigned track: the
 Voices panel macros and the global FX panel, both of which drive Tone voices
 only — a synth part has its own envelopes and its own sends to the synth
-mixer's effects. The mixer fader *is* bridged, so pulling a track down still
-works.
+mixer's effects. Both panels now say so rather than offering dead controls:
+the Voices row dims and labels itself, and the FX panel names the tracks it
+no longer reaches. The mixer fader *is* bridged, so pulling a track down
+still works.
+
+Patches are part of the project: they save into snapshots and the autosave,
+and survive a page reload. Because patch edits live in refs (a knob drag must
+not re-render the Workbench), the hook raises a debounced revision counter to
+tell the autosave something changed.
 
 ## Also built (beyond the original port scope)
 - **Drum machine** — 4 kits, own step grid, velocity editing

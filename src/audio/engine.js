@@ -73,6 +73,10 @@ const SYNTH_SLOT_OF = {
 };
 export const SYNTH_SLOTS = ["chord", "bass", "melody", "arp"];
 
+// Which synth slot a Tone voice belongs to, for UI that needs to say whether
+// a track is still on its Tone voice.
+export const synthSlotForVoice = (voice) => SYNTH_SLOT_OF[voice] ?? null;
+
 // Two Tone voices can share a slot (piano/pad, bass/acid). The mixer fader
 // bridge follows only the primary one, so two faders can't fight over a
 // single part's level.

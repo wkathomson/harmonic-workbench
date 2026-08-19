@@ -18,7 +18,7 @@
 // it sends to them. That is what lets bass, chords and melody sound like
 // three different instruments in one room.
 
-import { useCallback, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { ensureAudio } from "../../audio/context.js";
 import { getAudioEngine, SYNTH_SLOTS } from "../../audio/engine.js";
 import { createMixer } from "../../audio/synth/mixer.js";
@@ -52,7 +52,18 @@ export function useWorkbenchSynth() {
     Object.fromEntries(SYNTH_SLOTS.map((s) => [s, DEFAULT_SLOTS.map((x) => ({ ...x }))])),
   );
   const [slots, setSlots] = useState(emptySlots);
-  const [, bump] = useReducer((n) => n + 1, 0);
+
+  // Knob edits land in refs, so nothing about them re-renders — which also
+  // means nothing tells the project autosave that the patch changed. This
+  // revision counter is that signal, bumped on a trailing debounce: one
+  // re-render per pause in editing rather than one per pointermove.
+  const [revision, bump] = useReducer((n) => n + 1, 0);
+  const touchTimer = useRef(null);
+  const touch = useCallback(() => {
+    clearTimeout(touchTimer.current);
+    touchTimer.current = setTimeout(bump, 1200);
+  }, []);
+  useEffect(() => () => clearTimeout(touchTimer.current), []);
 
   const ensureMixer = useCallback(async () => {
     if (!mixerRef.current) {
@@ -106,6 +117,7 @@ export function useWorkbenchSynth() {
       bump();
       return;
     }
+    touch();
     const [mod, key] = path.split(".");
     if (MIXER_PARAMS.has(path)) {
       // One mix, so a change here applies to every slot's view of it.
@@ -189,7 +201,7 @@ export function useWorkbenchSynth() {
   }, [loadPatch, setSlotEnabled]);
 
   return {
-    slots, setSlotEnabled,
+    slots, revision, setSlotEnabled,
     write, setModSlot, loadPatch,
     valuesFor, modSlotsFor, partFor,
     mixerRef,

@@ -1008,6 +1008,9 @@ export default function App() {
     melOn, melPenta, melSteps, melOct, melMode, melFill, melDens, melEucH, melPat, melLock,
     arpOn, arpMode, arpRhythm, arpSteps, arpPat,
     drumOn, drumKit, drumSteps, drumPat,
+    // Synth: slot identity covers toggles and patch loads; revision covers
+    // knob edits, which live in refs and would otherwise never be persisted.
+    synth.slots, synth.revision,
   ]);
 
   // ---- Variation suggestions ---------------------------------------------
@@ -1130,6 +1133,7 @@ export default function App() {
                 voiceState={voiceState}
                 onPreset={onVoicePreset}
                 onMacro={onVoiceMacro}
+                synthSlots={synth.slots}
               />
             </Section>
           )}
@@ -1140,7 +1144,7 @@ export default function App() {
               open={openS.fx} toggle={() => togS("fx")}
               badge={fx.delayPingPong ? "PP" : null}
             >
-              <FX fx={fx} onChange={onFxChange} />
+              <FX fx={fx} onChange={onFxChange} synthSlots={synth.slots} />
             </Section>
           )}
 
