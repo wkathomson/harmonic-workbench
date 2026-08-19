@@ -117,7 +117,7 @@ export default function App() {
   // ---- Collapsible sections ----
   const [openS, setOpenS] = useState({
     key: true, piano: true, chords: true, prog: true, snap: false,
-    mix: true, voices: false, synth: false, fx: false, design: false, tracks: false, midi: false,
+    mix: true, voices: false, synth: true, fx: false, design: false, tracks: false, midi: false,
     bass: true, mel: true, arp: false, drums: true,
   });
   const togS = (k) => setOpenS(p => ({ ...p, [k]: !p[k] }));
@@ -1253,7 +1253,7 @@ export default function App() {
 
           {mode === "arrange" && (
             <Section
-              num="S" title="Synth" color="var(--bw)"
+              num="Y" title="Synth" color="var(--bw)"
               open={openS.synth} toggle={() => togS("synth")}
               badge={Object.values(synth.slots).some(s => s.on) ? "ON" : null}
             >
