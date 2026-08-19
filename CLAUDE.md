@@ -117,6 +117,30 @@ All of the below are built. Section numbers match the numbered panels in the UI.
 - Key/Scale, Piano Roll, Chords, Progression default open
 - Bass, Melody, Arp default closed
 
+## The synth engine
+`reference/web-synth-v11.html` — a complete subtractive synth — is now the
+Workbench's voice engine, extracted into `src/audio/synth/`. Any track
+(chords, bass, melody, arp) can be handed to it from the **Synth** panel in
+Arrange mode: pick a patch, shape it on the compact strip, or open the
+Advanced drawer for the full instrument. A track not handed over keeps its
+Tone voice, so the two can be mixed freely.
+
+Each part carries its own patch; the effects are shared. `#/synth` is the
+standalone instrument and the regression harness.
+
+Two things the Workbench UI does *not* reach into a synth-assigned track: the
+Voices panel macros and the global FX panel, both of which drive Tone voices
+only — a synth part has its own envelopes and its own sends to the synth
+mixer's effects. Both panels now say so rather than offering dead controls:
+the Voices row dims and labels itself, and the FX panel names the tracks it
+no longer reaches. The mixer fader *is* bridged, so pulling a track down
+still works.
+
+Patches are part of the project: they save into snapshots and the autosave,
+and survive a page reload. Because patch edits live in refs (a knob drag must
+not re-render the Workbench), the hook raises a debounced revision counter to
+tell the autosave something changed.
+
 ## Also built (beyond the original port scope)
 - **Drum machine** — 4 kits, own step grid, velocity editing
 - **Snapshots** — save/recall whole sessions to localStorage, plus autosave
@@ -154,3 +178,165 @@ take most of the weight out of it. Not urgent.
 
 ## Communication style
 Will is knowledgeable about music production and policy (his day job is Head of Policy at a radio industry body) but not a developer. Explain technical decisions clearly. When making architectural choices, briefly say why. Don't assume knowledge of npm, git, or React internals — explain when relevant.
+
+# Audio architecture
+
+These rules govern everything under `src/audio/` and any React code that touches it.
+Several are counterintuitive; follow them even where the alternative looks tidier.
+
+## Hard rules
+
+1. **No React, no DOM in `src/audio/`.** Files under `src/audio/` must not import React,
+   reference `document`/`window`, or read from the DOM. They are plain ES modules that take
+   an `AudioContext` and return imperative APIs. If a module needs a value from the UI, it
+   is passed in as an argument.
+
+2. **The engine lives in a ref, never in state.** Store engine and part objects in
+   `useRef`. Never put an audio parameter value in React state in a way that causes a
+   re-render on every change. A knob drag fires ~60 pointermove events per second; running
+   the reconciler on each one competes with the audio thread and causes audible glitching.
+   Components may hold their own displayed value in state, but the write to the engine is
+   an imperative `setParam` call, not a prop flowing down.
+
+3. **One AudioContext for the whole application**, created lazily inside a user gesture and
+   guarded by a promise so concurrent callers do not construct two. See `ensureAudio()` in
+   the reference build for the shape. Never construct a context at module load: browsers
+   will create it suspended and the first note will be swallowed.
+
+4. **All parameter changes are scheduled on AudioParams**, using `setTargetAtTime`,
+   `linearRampToValueAtTime`, `setValueAtTime` or `cancelAndHoldAtTime`. Never write audio
+   values from a `setInterval` or `requestAnimationFrame` loop. If a value needs to change
+   continuously, it is a signal (a node connected to a param), not a JavaScript variable
+   polled on a timer.
+
+5. **Timing comes from the transport.** All musical timing – sequencer, arpeggiator, LFO
+   sync, delay sync, metronome – derives from `src/audio/transport.js` and its lookahead
+   scheduler. No module may start its own `setTimeout` loop to schedule notes. Timer
+   callbacks decide *what* to schedule; the audio clock decides *when* it sounds.
+
+6. **Never write two independent values to the same AudioParam.** AudioParams sum all
+   connected inputs, which is how the filter cutoff can carry a knob value, an envelope
+   offset and matrix modulation at once. But two writers *scheduling* on the same param
+   will fight. If a new control needs to affect something already scheduled, insert another
+   node in series (this is why tremolo has its own gain stage after the amp envelope, and
+   why noise level has a separate `noiseMod` gain).
+
+7. **Presets are flat dotted-key JSON with a `version` field.** Loading resets to defaults
+   first, then overlays the file, so preset files may be sparse and older files keep
+   working when new parameters are added. Never write a loader that assumes every key is
+   present.
+
+## Structural conventions
+
+- **Per-part vs shared.** Anything that belongs to a patch's character lives in the part
+  (oscillators, filter, envelopes, drive, bitcrush insert, send amounts). Anything that
+  belongs to the mix lives in the mixer and is shared by all parts (delay, chorus, reverb,
+  limiter, master, analyser, recorder). Do not instantiate a reverb per part.
+
+- **Modulation destinations are arrays of AudioParams.** A single destination may fan out
+  to several params (each oscillator unit holds two oscillators for wavetable
+  interpolation, so a pitch destination touches two detune params per unit). Destination
+  lookup functions return arrays even when the array has one element.
+
+- **Per-voice modulation sources wire per voice.** The aux envelope is a per-voice
+  `ConstantSource`; a matrix slot using it connects voice *i*'s envelope to voice *i*'s
+  destination param, so each note modulates only itself. Global sources (LFOs, mod wheel)
+  use one gain node fanned out to all voices. These two paths are deliberately separate.
+
+- **Note-static modulation is sampled at note-on.** Velocity and keytrack are numbers that
+  only exist when a note fires; they are folded into the voice's base pitch and cutoff
+  rather than streamed through the graph. Trigger-time destinations (filter env amount, amp
+  decay, amp sustain) are read at the same moment. Audio-rate sources cannot reach them.
+
+- **The bitcrusher AudioWorklet is loaded from a Blob URL**, not a file path. This is
+  deliberate: it works identically in dev and in the GitHub Pages build without any
+  `base`-path handling. Do not "improve" it into a `?worker&url` import.
+
+- **The worklet module is loaded before the graph is constructed**, and the node is wired
+  synchronously. Do not load asynchronously and swap the node in later: a failed load then
+  leaves controls connected to nothing, silently.
+
+## Performance notes
+
+- Oscillator count multiplies fast: parts × voices × 2 units × 2 oscillators per unit.
+  Default voice pools should be sized to the part's job (a bass part needs 1–2, a chord
+  part 6) rather than uniformly maximal.
+
+- Analysis drawing (scopes, response curves, voice LEDs) runs at half frame rate and should
+  stay that way. Canvas work on the main thread competes with audio.
+
+- Keep the master level at or below about 70 % so the limiter is not in sustained gain
+  reduction, which modulates gain within waveform cycles and sounds like distortion.
+
+## Verification
+
+There is a dev-only route at `#/synth` that mounts the standalone synthesiser panel against
+the extracted engine modules. After any change to `src/audio/`, that route must still sound
+identical to `reference/web-synth-v11.html`. It is the regression target for the whole
+audio layer – check it before wiring anything into the Workbench UI.
+
+`scripts/render-compare.mjs` makes that check objective. It renders the same note sequence
+through the reference engine and through `src/audio/synth/`, offline in headless Chromium,
+for every factory preset, and compares the samples. Run it after any change to the audio
+layer:
+
+```
+npm install --no-save playwright     # not a project dependency
+node scripts/render-compare.mjs
+```
+
+Chromium's own rendering is not bit-reproducible between two OfflineAudioContexts, so the
+pass threshold is that noise floor (1e-4, about -80 dB) rather than zero. `CONTROL=1` runs
+the reference against itself to show the baseline.
+
+## Decisions taken during the integration
+
+These deviate from `docs/synth-integration-brief.md` where the Workbench as it stands
+made the brief's assumption wrong. The brief is the plan; this is what was actually done.
+
+- **The synth engine lives in `src/audio/synth/`, not `src/audio/` directly.** The brief
+  assumed an empty `src/audio/`. It already holds the Tone.js engine and its own
+  `presets.js`, which the synth's `presets.js` would have clobbered. The rules above apply
+  to the whole of `src/audio/` regardless.
+
+- **Tone.js stays, and shares one AudioContext with the synth.** `src/audio/context.js`
+  creates the single native AudioContext inside a user gesture and hands it to Tone
+  (`Tone.setContext`) as well as to the synth engine. Tone keeps driving the drums, the
+  sequencer scheduling and MIDI clock; the synth engine provides the tonal voices. Two
+  contexts would mean two clocks and no way to schedule synth notes against the sequencer.
+
+- **`transport.js` wraps `Tone.Transport` rather than replacing it.** It exposes the
+  `subscribe(cb, division) → unsubscribe` contract from the brief, with `cb(beat, audioTime)`
+  in audio-clock time. `division` is Tone notation ('4n', '8t', '16n' …) so intervals stay
+  tempo-relative and a tempo change re-times the remaining steps forward instead of
+  stranding them. The arpeggiator's `setTimeout` loop is now one subscriber, so it locks to
+  the same clock as the sequencer. Rule 5 above holds: modules schedule against the audio
+  clock and never start their own loops.
+
+  Tempo has one owner: the transport. `master.tempo` on the mixer writes through to it and
+  reads back from it, so the sequencer, arp, LFO sync and delay sync cannot drift apart.
+  One behavioural consequence: engaging the arp starts the transport, because the arp can
+  no longer free-run on a timer of its own.
+
+- **The route is `#/synth`, not `/synth`.** The app has no router and GitHub Pages serves
+  it from a sub-path, so a hash route works identically in dev and on Pages without adding
+  a routing dependency or any `base`-path handling.
+
+- **The monolithic `createSynth` is gone.** Phase 1 extracted it verbatim as
+  `src/audio/synth/synth.js`; Phase 2 replaced it with `createPart` + `createMixer` and it
+  was deleted rather than left as a second engine to drift out of step. It is in git
+  history if it is ever needed (`git show 2f979ac:src/audio/synth/synth.js`), and
+  `reference/web-synth-v11.html` remains the ground truth either way.
+
+- **Patch state is split in two.** `MIXER_PARAMS` in `constants.js` is the routing table:
+  effect *settings* (delay time, reverb size, chorus rate, master level, tempo) belong to
+  the mix and are shared by every part; everything else — including the three send
+  *amounts* and the bitcrush insert — belongs to the patch and travels with it. This is
+  what lets bass, chords and melody each carry their own sound while sharing one reverb.
+  A patch designed with a big reverb send will sound drier on a project whose reverb is
+  set small; that is the intended behaviour, not a bug.
+
+- **The panel UI lives in `src/components/synth/`.** `Knob`/`Switch`/`params.js` are the
+  primitives, `panel/` holds the eight modules, `scopes/` the canvas visualisations (all
+  sharing one half-rate raf loop), and `panel.css` is the reference stylesheet scoped
+  under `.instrument`.

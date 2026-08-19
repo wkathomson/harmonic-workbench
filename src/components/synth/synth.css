@@ -1,0 +1,27 @@
+/* Standalone synth route. Uses the Workbench theme tokens from index.css so
+   the two look like one instrument; the full panel port refines this. */
+.sy { font-family: 'JetBrains Mono', monospace; background: var(--bg); color: var(--tx); min-height: 100vh; padding: 20px; font-size: 13px; }
+.sy * { box-sizing: border-box; }
+.sy-hdr { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex-wrap: wrap; border-bottom: 1px solid var(--bd); padding-bottom: 14px; margin-bottom: 16px; }
+.sy-hdr h1 { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 900; margin: 0; line-height: 1; }
+.sy-hdr h1 i { color: var(--ac); }
+.sy-sub { font-size: .65rem; color: var(--txf); text-transform: uppercase; letter-spacing: .3em; margin-top: 5px; }
+.sy-hc { display: flex; gap: 8px; align-items: center; }
+.sy button, .sy select { background: var(--pn); border: 1px solid var(--bd); color: var(--tx); font-family: inherit; font-size: .7rem; padding: 6px 10px; border-radius: 2px; cursor: pointer; }
+.sy button:hover { background: var(--pn2); }
+.sy button.on { background: var(--ac); color: var(--bg); font-weight: 700; border-color: var(--ac); }
+.sy-back { color: var(--txd); text-decoration: none; font-size: .65rem; text-transform: uppercase; letter-spacing: .12em; }
+.sy input[type=range] { width: 100%; accent-color: var(--ac); }
+
+/* The reference injects a <span class="fold">▾</span> into each module head.
+   A pseudo-element does the same job without giving React a stray child to
+   reconcile; panel.css already styles .fold and the collapsed states. */
+.instrument .module-head::after {
+  content: '▾';
+  font-size: .55rem;
+  color: var(--engrave-soft);
+  flex: none;
+  margin-left: auto;
+  transition: transform .12s ease;
+}
+.instrument .module[data-collapsed="true"] .module-head::after { transform: rotate(-90deg); }
